@@ -1,20 +1,26 @@
 "use client"
 
+import { AuthResponse, LoginRequest , SignUpRequest} from "@/lib/api"
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
-
-interface User{
+import ApiService from "@/lib/api"
+export interface User{
   email: string,
-  name: string
+  name?: string,
+  userName?: string,
+  password: string,
+  enterpriseTag?: string
 };
 
 interface AuthContextType{
   user: User | null
   login: (user: User)=> void
   logout: ()=> void
+  signup: (user: User)=> void
   isLoading: boolean
 }
 
 const AuthContext= createContext<AuthContextType | undefined>(undefined);
+const apiService = new ApiService("http://localhost:5000");
 
 // custom hook for handling user Authentication
 export function AuthProvider({children}: {children: ReactNode}){
@@ -38,17 +44,50 @@ export function AuthProvider({children}: {children: ReactNode}){
     setIsLoading(false);
   }, []); 
 
-  const login= (userData: User)=>{
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+  const login= async(userData: User)=>{
+    alert("the api is called")
+    const loginRequest: LoginRequest = {
+      email: userData.email,
+      password: userData.password
+    };
+    const authData: AuthResponse = await apiService.login(loginRequest);
+    if(authData.token){
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+    }
+    else{
+      alert("Login of the user Failed");
+    }
   }
 
-  const logout= ()=>{
+  const signup= async(userData: User)=>{
+    const signUpRequest: SignUpRequest={
+        username: userData.userName ?? "",
+        email: userData.email,
+        password: userData.password,
+        enterpriseTag: userData.enterpriseTag ?? ""
+    };
+    const authData: AuthResponse= await apiService.signup(signUpRequest);
+    if(authData.token){
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+    }
+    else{
+      alert("Sign Up of User Failed");
+    }
+  }
+
+  const logout= async()=>{
+    alert("Logout of Device is called");
+    const authData: boolean= await apiService.logout();
+    if(authData== true){
+      alert("User Logout Successfully");
+    }
     setUser(null);
     localStorage.removeItem("user");
   }
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

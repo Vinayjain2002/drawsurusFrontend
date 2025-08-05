@@ -1,4 +1,4 @@
-const API_BASE_URL= process.env.API_URL || "http://localhost:5000"
+const API_BASE_URL= "http://localhost:5000"
 
 export interface ApiResponse<T = any>{
     success: boolean,
@@ -44,7 +44,7 @@ class ApiService{
     private token: string | null = null
 
     constructor(baseURL: string){
-        this.baseURL= baseURL
+        this.baseURL="http://localhost:5000"
         if(typeof window !== 'undefined'){
             this.token= localStorage.getItem("auth_token");
         }
@@ -81,7 +81,8 @@ class ApiService{
         endpoint: string,
         options: RequestInit = {}
       ): Promise<ApiResponse<T>>{
-        const url= `{this.BaseURL}${endpoint}`
+        const url = `${this.baseURL}${endpoint}`;
+        alert("url is defined as the");
         const config: RequestInit = {
             headers: this.getHeaders(),
             ...options
@@ -106,11 +107,12 @@ class ApiService{
           body: JSON.stringify(credentials),
         })
     
+   
         if (response.success && response.data) {
           this.setToken(response.data.token)
           return response.data
         }
-    
+        
         throw new Error(response.message || 'Login failed')
       }
 
@@ -128,15 +130,17 @@ class ApiService{
         throw new Error(response.message || 'Signup failed')
       }
 
-      async logout(): Promise<void> {
+      async logout(): Promise<boolean> {
         try {
           await this.request('/auth/logout', {
             method: 'POST',
           })
+          return true;
         } catch (error) {
           console.error('Logout request failed:', error)
         } finally {
         //   this.clearToken()
+        return false;
         }
       }
 
@@ -172,9 +176,7 @@ class ApiService{
             return response.data;
         }
         throw new Error(response.message || 'Failed to update user data')
-      }
-
-      
-
+      }      
       // Auth routes end here
 }
+export default ApiService;

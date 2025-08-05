@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
+import { ApiResponse, LoginRequest } from "@/lib/api"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -22,8 +23,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-
+    setIsLoading(true);
     try {
       // Validate form
       if (!email || !password) {
@@ -32,11 +32,9 @@ export default function LoginPage() {
           description: "Please enter both email and password.",
           variant: "destructive",
         })
-        return
+        return;
       }
-
-      // Call API through auth context
-      await login({ email, password })
+      await login({ email: email,password:password })
       
       toast({
         title: "Login Successful!",

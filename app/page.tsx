@@ -65,40 +65,6 @@ export default function DrawsurusGame() {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null)
   const { toast } = useToast()
   const { user, isLoading } = useAuth()
-
-  // Show loading state while auth is initializing
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
-    )
-  }
-
-  // If no user is authenticated, redirect to landing page
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🦕</div>
-          <h1 className="text-4xl font-bold text-white mb-4">Welcome to Drawsurus!</h1>
-          <p className="text-white/80 mb-8">Please sign in or continue as guest to start playing</p>
-          <div className="flex gap-4 justify-center">
-            <Button onClick={() => window.location.href = '/login'}>
-              Sign In
-            </Button>
-            <Button variant="outline" onClick={() => window.location.href = '/signup'}>
-              Sign Up
-            </Button>
-            <Button variant="ghost" onClick={() => window.location.href = '/landing'}>
-              Learn More
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   const [gameData, setGameData] = useState<GameData>({
     currentRound: 1,
     currentDrawer: "",
@@ -265,7 +231,41 @@ export default function DrawsurusGame() {
       winner: undefined,
       gameId: Math.random().toString(36).substr(2, 9),
     }))
-  }, [])
+  }, []);
+
+  // Show loading state while auth is initializing
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    )
+  }
+
+  // If no user is authenticated, redirect to landing page
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🦕</div>
+          <h1 className="text-4xl font-bold text-white mb-4">Welcome to Drawsurus!</h1>
+          <p className="text-white/80 mb-8">Please sign in or continue as guest to start playing</p>
+          <div className="flex gap-4 justify-center">
+            <Button onClick={() => window.location.href = '/login'}>
+              Sign In
+            </Button>
+            <Button variant="outline" onClick={() => window.location.href = '/signup'}>
+              Sign Up
+            </Button>
+            <Button variant="ghost" onClick={() => window.location.href = '/landing'}>
+              Learn More
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
