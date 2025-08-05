@@ -117,7 +117,7 @@ class ApiService{
       }
 
       async signup(userData: SignUpRequest): Promise<AuthResponse> {
-        const response = await this.request<AuthResponse>('/auth/signup', {
+        const response = await this.request<AuthResponse>('/auth/register', {
           method: 'POST',
           body: JSON.stringify(userData),
         })
@@ -148,7 +148,7 @@ class ApiService{
         const response= await this.request<AuthResponse>("/auth/refresh", {
             method: 'POST'
         });
-
+        
         if(response.success && response.data){
             this.setToken(response.data.token);
             return response.data;

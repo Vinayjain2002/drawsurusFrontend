@@ -61,8 +61,17 @@ export function AuthProvider({children}: {children: ReactNode}){
   }
 
   const signup= async(userData: User)=>{
+    const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let result = "";
+    const randomValues = new Uint32Array(length);
+    crypto.getRandomValues(randomValues); // browser crypto API
+  
+    for (let i = 0; i < length; i++) {
+      result += charset[randomValues[i] % charset.length];
+    }
+
     const signUpRequest: SignUpRequest={
-        username: userData.userName ?? "",
+        username: userData.userName ?? result,
         email: userData.email,
         password: userData.password,
         enterpriseTag: userData.enterpriseTag ?? ""

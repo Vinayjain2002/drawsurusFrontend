@@ -77,7 +77,7 @@ export default function SignupPage() {
       }
 
       // Call API through auth context
-     
+      alert("Signup request is called");
       await signup({
         name: formData.name,
         email: formData.email,
