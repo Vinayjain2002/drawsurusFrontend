@@ -1,6 +1,7 @@
 const API_BASE_URL= "http://localhost:5000"
 
 export interface ApiResponse<T = any>{
+    status: Number,
     success: boolean,
     data?: T,
     message?: string,
@@ -13,7 +14,7 @@ export interface LoginRequest{
 }
 
 export interface SignUpRequest{
-    username: string,
+    userName: string,
     email: string,
     password: string,
     enterpriseTag: string
@@ -34,6 +35,7 @@ export interface User{
 }
 
 export interface AuthResponse{
+    status: Number,
     user: User,
     token: string,
     refreshToken?: string
@@ -65,14 +67,13 @@ class ApiService{
     }
 
     private getHeaders(): HeadersInit {
-        // a private method for the initializing of the headers
         const headers: HeadersInit={
             'Content-Type': 'application/json',
         }   
         if(this.token){
             headers["Authorization"]= `Bearer ${this.token}`
         }
-        
+       
         return headers;
     }
 
@@ -82,7 +83,6 @@ class ApiService{
         options: RequestInit = {}
       ): Promise<ApiResponse<T>>{
         const url = `${this.baseURL}${endpoint}`;
-        alert("url is defined as the");
         const config: RequestInit = {
             headers: this.getHeaders(),
             ...options
@@ -90,9 +90,8 @@ class ApiService{
         try{
             const response= await fetch(url, config);
             const data= await response.json();
-            if(!response.ok){
-                throw new Error(data.message || `HTTP error! status: ${response.status}`)
-            }
+            const status= response.status;
+            data.status= status;
             return data;
         }
         catch(err){
@@ -102,17 +101,16 @@ class ApiService{
     }
 
     async login(credentials: LoginRequest): Promise<AuthResponse> {
+    
         const response = await this.request<AuthResponse>('/auth/login', {
           method: 'POST',
           body: JSON.stringify(credentials),
         })
-    
-   
-        if (response.success && response.data) {
+      
+        if(response.success && response.data){
           this.setToken(response.data.token)
           return response.data
         }
-        
         throw new Error(response.message || 'Login failed')
       }
 
@@ -121,12 +119,11 @@ class ApiService{
           method: 'POST',
           body: JSON.stringify(userData),
         })
-    
+       
         if (response.success && response.data) {
           this.setToken(response.data.token)
           return response.data
         }
-    
         throw new Error(response.message || 'Signup failed')
       }
 
@@ -160,7 +157,7 @@ class ApiService{
         const response = await this.request<User>('/auth/profile',{
             method: 'GET'
         });
-        
+    
         if (response.success && response.data) {
           return response.data;
         }

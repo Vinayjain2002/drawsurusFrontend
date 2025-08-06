@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/auth-context"
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
-    name: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -48,8 +48,8 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      // Validate form
-      if (!formData.name || !formData.email || !formData.password) {
+     
+      if (!formData.username || !formData.email || !formData.password) {
         toast({
           title: "Missing Information",
           description: "Please fill in all required fields.",
@@ -76,10 +76,8 @@ export default function SignupPage() {
         return
       }
 
-      // Call API through auth context
-      alert("Signup request is called");
       await signup({
-        name: formData.name,
+        userName: formData.username,
         email: formData.email,
         password: formData.password
       })
@@ -89,7 +87,6 @@ export default function SignupPage() {
         description: "Welcome to Drawsurus! Your account has been created successfully.",
       })
       
-      // Redirect to main game
       router.push("/")
     } catch (error) {
       toast({
@@ -117,15 +114,15 @@ export default function SignupPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">UserName</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="name"
                   type="text"
                   placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  value={formData.username}
+                  onChange={(e) => handleInputChange("username", e.target.value)}
                   className="pl-10"
                   required
                 />
@@ -272,7 +269,14 @@ export default function SignupPage() {
           </div>
 
           <div className="mt-4 text-center">
-            <Button variant="outline" className="w-full" onClick={() => router.push("/")}>
+            <Button 
+              variant="outline" 
+              className="w-full bg-green-600 hover:bg-green-700 text-white border-green-600" 
+              onClick={() => {
+                localStorage.setItem("guestMode", "true");
+                router.push("/");
+              }}
+            >
               Continue as Guest
             </Button>
           </div>

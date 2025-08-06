@@ -13,19 +13,18 @@ import { useAuth } from "@/contexts/auth-context"
 import { ApiResponse, LoginRequest } from "@/lib/api"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
   const { login } = useAuth()
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true);
     try {
-      // Validate form
       if (!email || !password) {
         toast({
           title: "Missing Information",
@@ -40,9 +39,8 @@ export default function LoginPage() {
         title: "Login Successful!",
         description: "Welcome back to Drawsurus!",
       })
-      
-      // Redirect to main game
-      router.push("/")
+      router.push("/");
+
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -50,7 +48,7 @@ export default function LoginPage() {
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -126,7 +124,14 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-4 text-center">
-            <Button variant="outline" className="w-full" onClick={() => router.push("/")}>
+            <Button 
+              variant="outline" 
+              className="w-full bg-green-600 hover:bg-green-700 text-white border-green-600" 
+              onClick={() => {
+                localStorage.setItem("guestMode", "true");
+                router.push("/");
+              }}
+            >
               Continue as Guest
             </Button>
           </div>

@@ -11,11 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Users, Settings, Crown, Check, X, UserX, Copy, Share2, Gamepad2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import type { GameData, Player, GameSettings } from "@/app/page"
+import type { LobbyData, Player, GameSettings } from "@/app/page"
 import KeywordUpload from "@/components/keyword-upload"
 
 interface LobbyScreenProps {
-  gameData: GameData
+  gameData: LobbyData
   currentPlayer: Player | null
   customWords: string[]
   onUpdateCustomWords: (words: string[]) => void
@@ -27,7 +27,7 @@ interface LobbyScreenProps {
 }
 
 export default function LobbyScreen({
-  gameData,
+  gameData, // Now only contains: players, settings, gameId (no unnecessary game state!)
   currentPlayer,
   customWords,
   onUpdateCustomWords,
