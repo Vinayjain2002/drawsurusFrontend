@@ -41,9 +41,6 @@ export interface AuthResponse {
   error?: string; 
 }
 
-
-
-
 export interface CompleteUserResponse{
   status?: number,
   success: boolean,
@@ -147,6 +144,14 @@ export interface WordResponse{
   success: boolean,
   message?: string,
   data: Word |  null,
+  error?: string
+}
+
+export interface MultipleWordResponse{
+  status?: number,
+  success: boolean,
+  message?: string,
+  data: Word[] |  null,
   error?: string
 }
 
@@ -437,6 +442,21 @@ class ApiService{
         };
       }
 
+      async createGame(gameData: Game): Promise<SingleGameResponse>{
+        const response= await this.request<Game>(`/game`, {
+          method: 'POST',
+          body: JSON.stringify(gameData)
+        });
+
+        return {
+          success: response.success,
+          status: response.status,
+          message: response.message,
+          data: response.data || null,
+          error: response.error
+        };
+      }
+
       async submitDrawing({gameId, strokes}: {gameId: number, strokes: Stroke}): Promise<ApiResponse>{
         const response= await this.request(`/game/drawing/${gameId}`, {
           method: 'POST'
@@ -496,8 +516,8 @@ class ApiService{
         };
       }
 
-      async getWord({category, difficulty}: {category: string, difficulty: string}): Promise<WordResponse>{
-          const response= await this.request<Word>(`/word`, {
+      async getWords({category, difficulty}: {category: string, difficulty: string}): Promise<MultipleWordResponse>{
+          const response= await this.request<Word[]>(`/word`, {
             method: 'GET'
           });
           return {
@@ -614,6 +634,24 @@ class ApiService{
         throw new Error(response.message || 'Failed to get room state')
       }
       
-      // Auth routes end here
+      // Guest User Routes
+
+     async createGuestUser({ userName, enterpriseTag }: { userName: string; enterpriseTag: string }): Promise<UserResponse> {
+        const createGuestUserRequest = { userName, enterpriseTag };
+
+        const response = await this.request<User>(`/user/guest`, {
+          method: 'POST',
+          body: JSON.stringify(createGuestUserRequest)
+        });
+
+        return {
+          status: response.status,
+          success: response.success,
+          message: response.message,
+          data: response.data || null,
+          error: response.error
+        };
+      }
+
 }
 export default ApiService;

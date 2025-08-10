@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect , useRef} from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { Toaster } from "@/components/ui/toaster"
 import LobbyScreen from "@/components/lobby-screen"
 import GameScreen from "@/components/game-screen"
@@ -10,13 +10,13 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import ApiService from "@/lib/api"
-import type { 
-  Player, 
-  Room, 
-  Game, 
-  GameSettings, 
-  ChatMessage, 
-  Drawing, 
+import type {
+  Player,
+  Room,
+  Game,
+  GameSettings,
+  ChatMessage,
+  Drawing,
   Round,
   FinalScore,
   UserStats,
@@ -26,6 +26,7 @@ import type {
 export type GameState = "lobby" | "game" | "gameOver"
 
 // Lobby data interface
+
 export interface LobbyData {
   players: Player[]
   settings: GameSettings
@@ -53,38 +54,65 @@ export interface GameData extends LobbyData, GamePlayData {
 
 const AVATARS = ["🦕", "🎨", "🌟", "🎯", "🚀", "🎪", "🎭", "🎨", "🦄", "🌈", "⭐", "🎊"]
 
-const WORD_CATEGORIES = {
-  animals: ["ELEPHANT", "BUTTERFLY", "DOLPHIN", "PENGUIN", "GIRAFFE", "OCTOPUS", "KANGAROO", "FLAMINGO"],
-  objects: ["GUITAR", "UMBRELLA", "TELESCOPE", "BICYCLE", "CAMERA", "LIGHTHOUSE", "WINDMILL", "CASTLE"],
-  actions: ["DANCING", "SWIMMING", "FLYING", "COOKING", "READING", "SINGING", "JUMPING", "PAINTING"],
-  food: ["PIZZA", "HAMBURGER", "SPAGHETTI", "SUSHI", "DONUT", "TACO", "SANDWICH", "PANCAKE"],
-  all: [
-    "ELEPHANT", "BUTTERFLY", "DOLPHIN", "PENGUIN", "GIRAFFE", "OCTOPUS", "KANGAROO", "FLAMINGO",
-    "GUITAR", "UMBRELLA", "TELESCOPE", "BICYCLE", "CAMERA", "LIGHTHOUSE", "WINDMILL", "CASTLE",
-    "DANCING", "SWIMMING", "FLYING", "COOKING", "READING", "SINGING", "JUMPING", "PAINTING",
-    "PIZZA", "HAMBURGER", "SPAGHETTI", "SUSHI", "DONUT", "TACO", "SANDWICH", "PANCAKE"
-  ],
-}
-
 export default function DrawsurusGame() {
+  const guestUsername = "Guest Player " + Math.random().toString(36).substr(2, 5);
   const [gameState, setGameState] = useState<GameState>("lobby")
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null)
   const { toast } = useToast()
   const { user, isLoading } = useAuth()
-  
-    // Auto-join with authenticated user details if available
-    // has JoinedRef for the purpose of the user loading only one time
+
+  // Auto-join with authenticated user details if available
+  // has JoinedRef for the purpose of the user loading only one time
   const hasJoinedRef = useRef(false);
   const [isGuestMode, setIsGuestMode] = useState(false);
-  
+
+  const createGuestPlayer = useCallback(
+    async (username: string, isHost: boolean, enterpriseTag?: string) => {
+      const apiService = new ApiService("http://localhost:5000");
+      
+      const guestUserResponse = await apiService.createGuestUser({
+        userName: username,
+        enterpriseTag: enterpriseTag || "drawsurus"
+      });
+
+      if (guestUserResponse.status === 201 && guestUserResponse.data) {
+        alert("Guest User Created Successfully");
+
+        const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+
+        const guestPlayer: Player = {
+          userId: guestUserResponse.data.id,
+          username: username || "Guest Player",
+          score: 0,
+          isReady: true,
+          isHost: isHost || false,
+          avatar: randomAvatar,
+          correctGuesses: 0,
+          drawings: 0,
+          joinedAt: new Date().toISOString(),
+        };
+
+        setCurrentPlayer(guestPlayer);
+        setLobbyData((prev) => ({
+          ...prev,
+          players: [...prev.players, guestPlayer],
+        }));
+      } else {
+        alert("Failed to create guest user. Please try again later.");
+      }
+    },[]
+  );
+
+  // this one is used for the purpose if the user has comes from the Login Or Signup pages
   useEffect(() => {
     refreshUserDetails();
-    
+
     // Check for guest mode from localStorage
     const guestMode = localStorage.getItem("guestMode");
     if (guestMode === "true" && !currentPlayer && !hasJoinedRef.current) {
       hasJoinedRef.current = true;
       setIsGuestMode(true);
+      createGuestPlayer(guestUsername, true, "drawsurus"); // Create guest player
       handleJoinGame("Guest Player", true);
       localStorage.removeItem("guestMode"); // Clear the flag
     } else if (user && !currentPlayer && !hasJoinedRef.current) {
@@ -109,10 +137,59 @@ export default function DrawsurusGame() {
       }
     }
   }, [])
-  
+
+  const createNewGame = useCallback(async () => {
+    // Fist Creating a new Room then we will create a new Game
+    const apiService = new ApiService("http://localhost:5000");
+    const roomRequest: Room= {
+      hostId: currentPlayer?.userId || "",
+      maxPlayers= 8,
+      players: currentPlayer ? [currentPlayer] : [],
+      status: "waiting",
+      createdAt: new Date().toISOString(),
+      settings: {
+        roundTime: 60,
+        roundsPerGame: 3,
+        wordDifficulty: "medium",
+        allowCustomWords: false,
+        maxPlayers: 8,
+        category: "all",
+      }
+    }
+    const roomResponse = await apiService.createRoom(roomRequest);
+    if(roomResponse.status== 201){
+      // so the room is created Successfully
+      const newRoom: Room = roomResponse.data;
+      console.log("New Room Created:", newRoom);
+      alert(newRoom.roomCode);
+
+      // now we can create a new Game
+    }
+    const newGameId = Math.random().toString(36).substr(2, 9)
+    setLobbyData((prev) => ({
+      ...prev,
+      gameId: newGameId,
+      players: [],
+      settings: {
+        roundTime: 60,
+        roundsPerGame: 3,
+        wordDifficulty: "medium",
+        allowCustomWords: false,
+        maxPlayers: 8,
+        category: "all",
+      },
+    }))
+    setCurrentPlayer(null)
+    setGameState("lobby")
+    toast({
+      title: "New Game Created!",
+      description: `Game ID: ${newGameId}`,
+    })
+  }, [toast])
+
   // Lobby data (minimal data needed for lobby)
   const [lobbyData, setLobbyData] = useState<LobbyData>({
-    players: [],
+    players: currentPlayer ? [currentPlayer] : [],
     settings: {
       roundTime: 60,
       roundsPerGame: 3,
@@ -123,7 +200,7 @@ export default function DrawsurusGame() {
     },
     gameId: Math.random().toString(36).substr(2, 9),
   })
-  
+
   // Game data (only created when game starts)
   const [gamePlayData, setGamePlayData] = useState<GamePlayData | null>(null)
   const [winner, setWinner] = useState<Player | undefined>(undefined)
@@ -156,18 +233,41 @@ export default function DrawsurusGame() {
       .join(" ")
   }, [])
 
+
   const getRandomWord = useCallback(
-    (category: string | undefined) => {
-      // Use custom words if available, otherwise use default categories
-      const categoryKey = category || "all"
-      const words = customWords.length > 0 ? customWords : WORD_CATEGORIES[categoryKey as keyof typeof WORD_CATEGORIES]
-      return words[Math.floor(Math.random() * words.length)]
+    async (category: string | undefined) => {
+      if (customWords.length > 0) {
+        return customWords[Math.floor(Math.random() * customWords.length)];
+      } else {
+        const apiService = new ApiService("http://localhost:5000");
+        const wordsResponse = await apiService.getWords({
+          category: category || "all",
+          difficulty: "medium"
+        });
+
+        if (wordsResponse.data && wordsResponse.data.length > 0) {
+          return wordsResponse.data[Math.floor(Math.random() * wordsResponse.data.length)];
+        } else {
+          console.error("No words found for the selected category or difficulty");
+          return "DRAWING"; // Fallback word
+        }
+      }
     },
-    [customWords],
-  )
+    [customWords]
+  );
+
 
   const handleJoinGame = useCallback(
     (playerName: string, isHost = false) => {
+      if (!playerName || playerName.trim() === "") {
+        toast({
+          title: "Invalid Player Name",
+          description: "Please enter a valid player name.",
+          variant: "destructive",
+        })
+        return
+      }
+
       const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)]
       const newPlayer: Player = {
         userId: Math.random().toString(36).substr(2, 9),
@@ -195,47 +295,48 @@ export default function DrawsurusGame() {
     [toast],
   )
 
-  const handleStartGame = useCallback(() => {
-    const readyPlayers = lobbyData.players.filter((p) => p.isReady || p.isHost)
+const handleStartGame = useCallback(async () => {
+  const readyPlayers = lobbyData.players.filter((p) => p.isReady || p.isHost);
 
-    if (readyPlayers.length === 0) {
-      toast({
-        title: "Cannot Start Game",
-        description: "At least one player must be ready!",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const firstDrawer = readyPlayers[0]
-    const newWord = getRandomWord(lobbyData.settings.category || "all")
-    const wordHint = generateWordHint(newWord, lobbyData.settings.wordDifficulty)
-
-    // Create game play data
-    const newGamePlayData: GamePlayData = {
-      currentRound: 1,
-      currentDrawer: firstDrawer.userId,
-      currentWord: newWord,
-      wordHint,
-      timeLeft: lobbyData.settings.roundTime,
-      roundStartTime: Date.now(),
-    }
-
-    setGamePlayData(newGamePlayData)
-    setLobbyData((prev) => ({
-      ...prev,
-      players: prev.players.map((p) => ({
-        ...p,
-        isDrawing: p.userId === firstDrawer.userId,
-      })),
-    }))
-
-    setGameState("game")
+  if (readyPlayers.length === 0) {
     toast({
-      title: "Game Started!",
-      description: `${firstDrawer.username} is drawing first!`,
-    })
-  }, [lobbyData.players, lobbyData.settings, getRandomWord, generateWordHint, toast])
+      title: "Cannot Start Game",
+      description: "At least one player must be ready!",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  const firstDrawer = readyPlayers[0];
+  const newWord = await getRandomWord(lobbyData.settings.category || "all");
+  const wordString = typeof newWord === "string" ? newWord : newWord.word;
+  const wordHint = generateWordHint(wordString, lobbyData.settings.wordDifficulty);
+
+  // Create game play data
+  const newGamePlayData: GamePlayData = {
+    currentRound: 1,
+    currentDrawer: firstDrawer.userId,
+    currentWord: wordString,
+    wordHint,
+    timeLeft: lobbyData.settings.roundTime,
+    roundStartTime: Date.now(),
+  };
+
+  setGamePlayData(newGamePlayData);
+  setLobbyData((prev) => ({
+    ...prev,
+    players: prev.players.map((p) => ({
+      ...p,
+      isDrawing: p.userId === firstDrawer.userId,
+    })),
+  }));
+
+  setGameState("game");
+  toast({
+    title: "Game Started!",
+    description: `${firstDrawer.username} is drawing first!`,
+  });
+}, [lobbyData.players, lobbyData.settings, getRandomWord, generateWordHint, toast]);
 
   const handleGameEnd = useCallback(
     (winner: Player) => {
@@ -303,11 +404,12 @@ export default function DrawsurusGame() {
             <Button variant="outline" onClick={() => window.location.href = '/signup'}>
               Sign Up
             </Button>
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               onClick={() => {
                 setIsGuestMode(true);
-                handleJoinGame("Guest Player", true);
+                localStorage.setItem("guestMode", "true");
+                handleJoinGame(guestUsername, true);
               }}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
@@ -361,10 +463,10 @@ export default function DrawsurusGame() {
             onStartGame={handleStartGame}
             onUpdateSettings={(settings) => setLobbyData((prev) => ({ ...prev, settings }))}
             onToggleReady={(playerId) => {
-                  setLobbyData((prev) => ({
-      ...prev,
-      players: prev.players.map((p) => (p.userId === playerId ? { ...p, isReady: !p.isReady } : p)),
-    }))
+              setLobbyData((prev) => ({
+                ...prev,
+                players: prev.players.map((p) => (p.userId === playerId ? { ...p, isReady: !p.isReady } : p)),
+              }))
             }}
             onKickPlayer={(playerId) => {
               setLobbyData((prev) => ({
@@ -386,10 +488,10 @@ export default function DrawsurusGame() {
             onUpdateGameData={(updater) => {
               // Create a combined game data for the updater function
               const combinedGameData: GameData = { ...lobbyData, ...gamePlayData!, winner }
-              
+
               // Apply the update
               const updatedGameData = updater(combinedGameData)
-              
+
               // Extract lobby and game play data
               const { currentRound, currentDrawer, currentWord, wordHint, timeLeft, roundStartTime, ...lobbyDataPart } = updatedGameData
               setLobbyData(lobbyDataPart)
@@ -406,7 +508,7 @@ export default function DrawsurusGame() {
             generateWordHint={generateWordHint}
           />
         )}
-
+/*
         {gameState === "gameOver" && (
           <GameOverScreen 
             gameData={{ ...lobbyData, ...gamePlayData!, winner }} 
@@ -414,6 +516,7 @@ export default function DrawsurusGame() {
             onBackToLobby={handleBackToLobby} 
           />
         )}
+
       </div>
       <Toaster />
     </div>

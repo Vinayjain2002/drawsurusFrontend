@@ -194,6 +194,7 @@ export interface User{
   totalGamesPlayed: number
   totalWins: number
   enterpriseTag: string
+  isGuest: boolean
 }
 
 export interface CompleteUserData{
