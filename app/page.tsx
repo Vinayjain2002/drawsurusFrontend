@@ -10,35 +10,31 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import ApiService from "@/lib/api"
+import type { 
+  Player, 
+  Room, 
+  Game, 
+  GameSettings, 
+  ChatMessage, 
+  Drawing, 
+  Round,
+  FinalScore,
+  UserStats,
+  Word
+} from "@/utils/types/game"
 
 export type GameState = "lobby" | "game" | "gameOver"
 
-export interface Player {
-  id: string
-  name: string
-  score: number
-  isReady: boolean
-  isHost: boolean
-  isDrawing?: boolean
-  avatar: string
-  correctGuesses: number
-}
-
-export interface GameSettings {
-  rounds: number
-  timePerRound: number
-  isPrivate: boolean
-  maxPlayers: number
-  difficulty: "easy" | "medium" | "hard"
-  category: "all" | "animals" | "objects" | "actions" | "food"
-}
-
+// Lobby data interface
 export interface LobbyData {
   players: Player[]
   settings: GameSettings
   gameId: string
+  roomCode?: string
+  status?: "waiting" | "playing" | "completed"
 }
 
+// Game play data interface
 export interface GamePlayData {
   currentRound: number
   currentDrawer: string
@@ -46,6 +42,8 @@ export interface GamePlayData {
   wordHint: string
   timeLeft: number
   roundStartTime: number
+  isPaused?: boolean
+  showHint?: boolean
 }
 
 // Combined data for when game is active
@@ -116,11 +114,11 @@ export default function DrawsurusGame() {
   const [lobbyData, setLobbyData] = useState<LobbyData>({
     players: [],
     settings: {
-      rounds: 3,
-      timePerRound: 60,
-      isPrivate: false,
+      roundTime: 60,
+      roundsPerGame: 3,
+      wordDifficulty: "medium",
+      allowCustomWords: false,
       maxPlayers: 8,
-      difficulty: "medium",
       category: "all",
     },
     gameId: Math.random().toString(36).substr(2, 9),
@@ -132,7 +130,7 @@ export default function DrawsurusGame() {
 
   const [customWords, setCustomWords] = useState<string[]>([])
 
-  const generateWordHint = useCallback((word: string, difficulty: GameData["settings"]["difficulty"]) => {
+  const generateWordHint = useCallback((word: string, difficulty: GameData["settings"]["wordDifficulty"]) => {
     const hintLevels = {
       easy: 0.7, // Show 70% of letters
       medium: 0.5, // Show 50% of letters
@@ -159,9 +157,10 @@ export default function DrawsurusGame() {
   }, [])
 
   const getRandomWord = useCallback(
-    (category: GameData["settings"]["category"]) => {
+    (category: string | undefined) => {
       // Use custom words if available, otherwise use default categories
-      const words = customWords.length > 0 ? customWords : WORD_CATEGORIES[category]
+      const categoryKey = category || "all"
+      const words = customWords.length > 0 ? customWords : WORD_CATEGORIES[categoryKey as keyof typeof WORD_CATEGORIES]
       return words[Math.floor(Math.random() * words.length)]
     },
     [customWords],
@@ -171,13 +170,15 @@ export default function DrawsurusGame() {
     (playerName: string, isHost = false) => {
       const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)]
       const newPlayer: Player = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: playerName,
+        userId: Math.random().toString(36).substr(2, 9),
+        username: playerName,
         score: 0,
         isReady: isHost, // Host is automatically ready
         isHost,
         avatar: randomAvatar,
         correctGuesses: 0,
+        drawings: 0,
+        joinedAt: new Date().toISOString(),
       }
 
       setCurrentPlayer(newPlayer)
@@ -207,16 +208,16 @@ export default function DrawsurusGame() {
     }
 
     const firstDrawer = readyPlayers[0]
-    const newWord = getRandomWord(lobbyData.settings.category)
-    const wordHint = generateWordHint(newWord, lobbyData.settings.difficulty)
+    const newWord = getRandomWord(lobbyData.settings.category || "all")
+    const wordHint = generateWordHint(newWord, lobbyData.settings.wordDifficulty)
 
     // Create game play data
     const newGamePlayData: GamePlayData = {
       currentRound: 1,
-      currentDrawer: firstDrawer.id,
+      currentDrawer: firstDrawer.userId,
       currentWord: newWord,
       wordHint,
-      timeLeft: lobbyData.settings.timePerRound,
+      timeLeft: lobbyData.settings.roundTime,
       roundStartTime: Date.now(),
     }
 
@@ -225,14 +226,14 @@ export default function DrawsurusGame() {
       ...prev,
       players: prev.players.map((p) => ({
         ...p,
-        isDrawing: p.id === firstDrawer.id,
+        isDrawing: p.userId === firstDrawer.userId,
       })),
     }))
 
     setGameState("game")
     toast({
       title: "Game Started!",
-      description: `${firstDrawer.name} is drawing first!`,
+      description: `${firstDrawer.username} is drawing first!`,
     })
   }, [lobbyData.players, lobbyData.settings, getRandomWord, generateWordHint, toast])
 
@@ -243,7 +244,7 @@ export default function DrawsurusGame() {
 
       toast({
         title: "🎉 Game Over!",
-        description: `${winner.name} wins with ${winner.score} points!`,
+        description: `${winner.username} wins with ${winner.score} points!`,
       })
     },
     [toast],
@@ -360,17 +361,17 @@ export default function DrawsurusGame() {
             onStartGame={handleStartGame}
             onUpdateSettings={(settings) => setLobbyData((prev) => ({ ...prev, settings }))}
             onToggleReady={(playerId) => {
-              setLobbyData((prev) => ({
-                ...prev,
-                players: prev.players.map((p) => (p.id === playerId ? { ...p, isReady: !p.isReady } : p)),
-              }))
+                  setLobbyData((prev) => ({
+      ...prev,
+      players: prev.players.map((p) => (p.userId === playerId ? { ...p, isReady: !p.isReady } : p)),
+    }))
             }}
             onKickPlayer={(playerId) => {
               setLobbyData((prev) => ({
                 ...prev,
-                players: prev.players.filter((p) => p.id !== playerId),
+                players: prev.players.filter((p) => p.userId !== playerId),
               }))
-              if (currentPlayer?.id === playerId) {
+              if (currentPlayer?.userId === playerId) {
                 setCurrentPlayer(null)
               }
             }}

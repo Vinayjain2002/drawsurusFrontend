@@ -76,18 +76,25 @@ export default function SignupPage() {
         return
       }
 
-      await signup({
+      const response= await signup({
         userName: formData.username,
         email: formData.email,
         password: formData.password
-      })
-      
-      toast({
-        title: "Account Created!",
-        description: "Welcome to Drawsurus! Your account has been created successfully.",
-      })
-      
-      router.push("/")
+      });
+      if(response== true){
+        toast({
+          title: "Account Created!",
+          description: "Welcome to Drawsurus! Your account has been created successfully.",
+        })
+        
+        router.push("/")
+      }
+      else{
+        toast({
+          title: "Account Created Failed"
+        });
+      }
+   
     } catch (error) {
       toast({
         title: "Signup Failed",

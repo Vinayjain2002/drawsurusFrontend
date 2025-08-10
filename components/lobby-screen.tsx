@@ -11,8 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Users, Settings, Crown, Check, X, UserX, Copy, Share2, Gamepad2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import type { LobbyData, Player, GameSettings } from "@/app/page"
+import type { Player, GameSettings } from "@/utils/types/game"
 import KeywordUpload from "@/components/keyword-upload"
+
+interface LobbyData {
+  players: Player[]
+  settings: GameSettings
+  gameId: string
+  roomCode?: string
+  status?: "waiting" | "playing" | "completed"
+}
 
 interface LobbyScreenProps {
   gameData: LobbyData
@@ -170,7 +178,7 @@ export default function LobbyScreen({
                 </div>
 
                 <Badge variant="secondary" className="text-sm">
-                  {gameData.settings.rounds} Rounds • {gameData.settings.timePerRound}s Each
+                  {gameData.settings.roundsPerGame} Rounds • {gameData.settings.roundTime}s Each
                 </Badge>
               </div>
             </CardContent>
@@ -188,7 +196,7 @@ export default function LobbyScreen({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {gameData.players.map((player) => (
                   <div
-                    key={player.id}
+                    key={player.userId}
                     className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200 hover:border-purple-300 transition-colors"
                   >
                     <div className="flex items-center gap-3">
@@ -196,7 +204,7 @@ export default function LobbyScreen({
                       <div>
                         <div className="flex items-center gap-2">
                           {player.isHost && <Crown className="w-4 h-4 text-yellow-500" />}
-                          <span className="font-semibold text-gray-800">{player.name}</span>
+                          <span className="font-semibold text-gray-800">{player.username}</span>
                         </div>
                         <p className="text-xs text-gray-500">{player.isHost ? "Host" : "Player"}</p>
                       </div>
@@ -219,7 +227,7 @@ export default function LobbyScreen({
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => onKickPlayer(player.id)}
+                          onClick={() => onKickPlayer(player.userId)}
                           className="text-red-500 hover:text-red-700 hover:bg-red-50"
                         >
                           <UserX className="w-4 h-4" />
@@ -230,7 +238,7 @@ export default function LobbyScreen({
                 ))}
 
                 {/* Empty slots */}
-                {Array.from({ length: Math.max(0, gameData.settings.maxPlayers - gameData.players.length) }).map(
+                {Array.from({ length: Math.max(0, (gameData.settings.maxPlayers || 8) - gameData.players.length) }).map(
                   (_, i) => (
                     <div
                       key={i}
@@ -246,7 +254,7 @@ export default function LobbyScreen({
               <div className="mt-6 flex justify-center gap-4">
                 {currentPlayer && !currentPlayer.isHost && (
                   <Button
-                    onClick={() => onToggleReady(currentPlayer.id)}
+                    onClick={() => onToggleReady(currentPlayer.userId)}
                     variant={currentPlayer.isReady ? "outline" : "default"}
                     className={`px-8 py-3 text-lg font-semibold ${
                       currentPlayer.isReady
@@ -284,11 +292,11 @@ export default function LobbyScreen({
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                        Number of Rounds: {gameData.settings.rounds}
+                        Number of Rounds: {gameData.settings.roundsPerGame}
                       </label>
                       <Slider
-                        value={[gameData.settings.rounds]}
-                        onValueChange={([value]) => onUpdateSettings({ ...gameData.settings, rounds: value })}
+                        value={[gameData.settings.roundsPerGame]}
+                        onValueChange={([value]) => onUpdateSettings({ ...gameData.settings, roundsPerGame: value })}
                         min={1}
                         max={10}
                         step={1}
@@ -302,11 +310,11 @@ export default function LobbyScreen({
 
                     <div>
                       <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                        Time per Round: {gameData.settings.timePerRound}s
+                        Time per Round: {gameData.settings.roundTime}s
                       </label>
                       <Slider
-                        value={[gameData.settings.timePerRound]}
-                        onValueChange={([value]) => onUpdateSettings({ ...gameData.settings, timePerRound: value })}
+                        value={[gameData.settings.roundTime]}
+                        onValueChange={([value]) => onUpdateSettings({ ...gameData.settings, roundTime: value })}
                         min={30}
                         max={180}
                         step={15}
@@ -320,10 +328,10 @@ export default function LobbyScreen({
 
                     <div>
                       <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                        Max Players: {gameData.settings.maxPlayers}
+                        Max Players: {gameData.settings.maxPlayers || 8}
                       </label>
                       <Slider
-                        value={[gameData.settings.maxPlayers]}
+                        value={[gameData.settings.maxPlayers || 8]}
                         onValueChange={([value]) => onUpdateSettings({ ...gameData.settings, maxPlayers: value })}
                         min={2}
                         max={12}
@@ -337,9 +345,9 @@ export default function LobbyScreen({
                     <div>
                       <label className="text-sm font-semibold text-gray-700 mb-2 block">Difficulty Level</label>
                       <Select
-                        value={gameData.settings.difficulty}
+                        value={gameData.settings.wordDifficulty}
                         onValueChange={(value: "easy" | "medium" | "hard") =>
-                          onUpdateSettings({ ...gameData.settings, difficulty: value })
+                          onUpdateSettings({ ...gameData.settings, wordDifficulty: value })
                         }
                       >
                         <SelectTrigger>
@@ -376,12 +384,12 @@ export default function LobbyScreen({
 
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div>
-                        <label className="text-sm font-semibold text-gray-700">Private Game</label>
-                        <p className="text-xs text-gray-500">Only players with the code can join</p>
+                        <label className="text-sm font-semibold text-gray-700">Custom Words</label>
+                        <p className="text-xs text-gray-500">Allow custom words in the game</p>
                       </div>
                       <Switch
-                        checked={gameData.settings.isPrivate}
-                        onCheckedChange={(checked) => onUpdateSettings({ ...gameData.settings, isPrivate: checked })}
+                        checked={gameData.settings.allowCustomWords || false}
+                        onCheckedChange={(checked) => onUpdateSettings({ ...gameData.settings, allowCustomWords: checked })}
                       />
                     </div>
                   </div>

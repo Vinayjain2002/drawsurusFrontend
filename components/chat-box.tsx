@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Send, MessageCircle, Smile } from "lucide-react"
-import type { Player } from "@/app/page"
+import type { Player, ChatMessage as GameChatMessage } from "@/utils/types/game"
 
 interface ChatMessage {
   id: string

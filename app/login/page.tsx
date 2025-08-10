@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
-import { ApiResponse, LoginRequest } from "@/lib/api"
+import { ApiResponse } from "@/lib/api"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -33,13 +33,17 @@ export default function LoginPage() {
         })
         return;
       }
-      await login({ email: email,password:password })
+      // const loginResponse= await login({ email: email,password:password })
+      const loginResponse= await login({email: email, password: password});
+      if(loginResponse == true){
+        toast({
+          title: "Login Successful!",
+          description: "Welcome back to Drawsurus!",
+        })
+        router.push("/");
+      }
       
-      toast({
-        title: "Login Successful!",
-        description: "Welcome back to Drawsurus!",
-      })
-      router.push("/");
+ 
 
     } catch (error: any) {
       toast({

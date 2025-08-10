@@ -10,10 +10,33 @@ import ChatBox from "@/components/chat-box"
 import Scoreboard from "@/components/scoreboard"
 import { Timer, Palette, Crown, Lightbulb, SkipForward, Pause, Play } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import type { GameData, Player } from "@/app/page"
+import type { Player, GameSettings } from "@/utils/types/game"
 import VideoMeeting from "@/components/video-meeting"
 import WordGuessing from "@/components/word-guessing"
 import ScorecardPopup from "@/components/scorecard-popup"
+
+interface LobbyData {
+  players: Player[]
+  settings: GameSettings
+  gameId: string
+  roomCode?: string
+  status?: "waiting" | "playing" | "completed"
+}
+
+interface GamePlayData {
+  currentRound: number
+  currentDrawer: string
+  currentWord: string
+  wordHint: string
+  timeLeft: number
+  roundStartTime: number
+  isPaused?: boolean
+  showHint?: boolean
+}
+
+interface GameData extends LobbyData, GamePlayData {
+  winner?: Player
+}
 
 interface GameScreenProps {
   gameData: GameData
@@ -21,7 +44,7 @@ interface GameScreenProps {
   onGameEnd: (winner: Player) => void
   onUpdateGameData: (updater: (prev: GameData) => GameData) => void
   getRandomWord: (category: GameData["settings"]["category"]) => string
-  generateWordHint: (word: string, difficulty: GameData["settings"]["difficulty"]) => string
+  generateWordHint: (word: string, difficulty: GameData["settings"]["wordDifficulty"]) => string
 }
 
 interface ChatMessage {
@@ -32,6 +55,22 @@ interface ChatMessage {
   timestamp: number
   avatar?: string
 }
+
+// interface ChatMessage {
+//   chatId: string
+//   roomId: string
+//   userId?: string
+//   username?: string
+//   message?: string
+//   type?: "guess" | "chat" | "system"
+//   gameId?: string
+//   roundNumber?: number
+//   timestamp: Date
+//   isCorrectGuess?: boolean
+//   points: number
+//   timeTaken?: number
+//   avatar?: string
+// }
 
 export default function GameScreen({
   gameData,
@@ -49,9 +88,9 @@ export default function GameScreen({
   const [isVideoExpanded, setIsVideoExpanded] = useState(false)
   const [showScorecardPopup, setShowScorecardPopup] = useState(false)
 
-  const isCurrentPlayerDrawing = currentPlayer.id === gameData.currentDrawer
-  const currentDrawer = gameData.players.find((p) => p.id === gameData.currentDrawer)
-  const currentDrawerName = currentDrawer?.name || "Unknown"
+  const isCurrentPlayerDrawing = currentPlayer.userId === gameData.currentDrawer
+  const currentDrawer = gameData.players.find((p) => p.userId === gameData.currentDrawer)
+  const currentDrawerName = currentDrawer?.username || "Unknown"
 
   // Enhanced timer with pause functionality
   useEffect(() => {

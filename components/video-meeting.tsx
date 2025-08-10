@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Video, VideoOff, Mic, MicOff, Users, Maximize2, Minimize2 } from "lucide-react"
-import type { Player } from "@/app/page"
+import type { Player } from "@/utils/types/game"
 
 interface VideoMeetingProps {
   players: Player[]
@@ -127,7 +127,7 @@ export default function VideoMeeting({
                 className={`w-full rounded-lg ${isExpanded ? "h-48" : "h-32"} bg-gray-900 object-cover`}
               />
               <div className="absolute top-2 left-2">
-                <Badge className="bg-black/50 text-white text-xs">You ({currentPlayer.name})</Badge>
+                <Badge className="bg-black/50 text-white text-xs">You ({currentPlayer.username})</Badge>
               </div>
               {!isVideoEnabled && (
                 <div className="absolute inset-0 bg-gray-900 rounded-lg flex items-center justify-center">
@@ -142,15 +142,15 @@ export default function VideoMeeting({
             {/* Other Players */}
             <div className={`grid ${isExpanded ? "grid-cols-2" : "grid-cols-3"} gap-2`}>
               {players
-                .filter((p) => p.id !== currentPlayer.id)
+                .filter((p) => p.userId !== currentPlayer.userId)
                 .map((player) => (
-                  <div key={player.id} className="relative">
+                  <div key={player.userId} className="relative">
                     <div
                       className={`${isExpanded ? "h-24" : "h-16"} bg-gray-200 rounded-lg flex items-center justify-center border-2 ${player.isDrawing ? "border-purple-400" : "border-gray-300"}`}
                     >
                       <div className="text-center">
                         <div className="text-2xl mb-1">{player.avatar}</div>
-                        <p className="text-xs text-gray-600">{player.name}</p>
+                        <p className="text-xs text-gray-600">{player.username}</p>
                       </div>
                     </div>
                     {player.isDrawing && (

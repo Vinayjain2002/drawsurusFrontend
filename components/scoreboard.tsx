@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Trophy, Crown, Palette, Target, Zap } from "lucide-react"
-import type { Player } from "@/app/page"
+import type { Player } from "@/utils/types/game"
 
 interface ScoreboardProps {
   players: Player[]
@@ -69,7 +69,7 @@ export default function Scoreboard({ players, currentRound }: ScoreboardProps) {
             const scoreProgress = (player.score / maxScore) * 100
 
             return (
-              <div key={player.id} className={`p-4 rounded-xl border-2 transition-all ${getRankColor(index)}`}>
+              <div key={player.userId} className={`p-4 rounded-xl border-2 transition-all ${getRankColor(index)}`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     {getRankIcon(index)}
@@ -78,7 +78,7 @@ export default function Scoreboard({ players, currentRound }: ScoreboardProps) {
                       <div className="flex items-center gap-2">
                         {player.isHost && <Crown className="w-4 h-4 text-yellow-500" />}
                         {player.isDrawing && <Palette className="w-4 h-4 text-purple-500" />}
-                        <span className="font-semibold text-gray-800">{player.name}</span>
+                        <span className="font-semibold text-gray-800">{player.username}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-600">
                         <div className="flex items-center gap-1">
