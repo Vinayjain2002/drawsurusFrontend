@@ -1,4 +1,5 @@
-import { Game, GameSettings, Room, Stroke, User, Word } from "@/utils/types/game"
+import {  CompleteUserData, Game, GameSettings, Room, Stroke, User, UserStats, Word } from "@/utils/types/game"
+import { error } from "console";
 
 const API_BASE_URL= "http://localhost:5000"
 
@@ -40,6 +41,18 @@ export interface AuthResponse {
   error?: string; 
 }
 
+
+
+
+export interface CompleteUserResponse{
+  status?: number,
+  success: boolean,
+  message?: string,
+  data: CompleteUserResponse | null,
+  error?: string
+}
+
+
 export interface TokenResponse{
   status?: number;
   success: boolean;
@@ -63,6 +76,20 @@ export interface UserResponse{
   error?: string
 }
 
+export interface MultipleUserResponse{
+  status?: number,
+  success: boolean,
+  message?: string,
+  data: User[] | null,
+  error?: string
+}
+export interface UserStatsResponse{
+  status?: number,
+  success: boolean,
+  message?: string,
+  data: UserStats | null,
+  error?: string
+}
 export interface createRoomInterface{
   maxPlayers: number;
   settings: GameSettings | null
@@ -281,38 +308,23 @@ class ApiService{
           error: response.error
         }
       }
-      // Words Controller
-
-
-      async createRoom(roomData: Room): Promise<SingleRoomResponse>{
-        const response= await this.request<Room>("/room", {
-          method: "POST"
+      // user routes
+      async getUsersById({userId}: {userId: number}):Promise<UserResponse>{
+        const response= await this.request<User>(`/user/${userId}`, {
+          method: 'GET'
         });
 
         return {
           status: response.status,
           success: response.success,
           message: response.message,
-          data: response.data || null,
+          data: response.data ||  null,
           error: response.error
         }
       }
 
-      async updateRoomSettings(roomData: Room): Promise<SingleRoomResponse>{
-        const response= await this.request<Room>(`/room/settings/${roomData._id}`, {
-          method: "PUT"
-        });
-        return {
-          status: response.status,
-          success: response.success,
-          message: response.message,
-          data: response.data || null,
-          error: response.error
-        };
-      }
-
-      async getActiveRooms():Promise<RoomListResponse>{
-        const response= await this.request<Room[]>("/room", {
+      async getUserStats({userId}: {userId: number}): Promise<UserStatsResponse>{
+        const response= await this.request<UserStats>(`/user/stats/${userId}`, {
           method: "GET"
         });
         return {
@@ -324,18 +336,77 @@ class ApiService{
         }
       }
 
-      async startRoom({roomId}: {roomId: number}):Promise<SingleRoomResponse>{
-        const response= await this.request<Room>(`/room/startGame/${roomId}`,{
-          method: "POST"
+      async getOnlineUsers({enterpriseTag}: {enterpriseTag: string}): Promise<MultipleUserResponse>{
+        const response= await this.request<User[]>(`/user/online`, {
+          method: 'GET'
         });
+
         return {
-          success: response.success,
           status: response.status,
-          message: response.message,
-          data: response.data || null,
+          success:response.success,
+          message:response.message,
+          data: response.data ||  null,
           error: response.error
-        };
-      } 
+        }
+      }
+
+      async searchUsers({userName, enterpriseTag}: {userName: string, enterpriseTag: string}): Promise<MultipleUserResponse>{
+          const response= await this.request<User[]>(`/user/search`, {
+            method: "GET"
+          });
+
+          return {
+            status: response.status,
+            success: response.success,
+            message: response.message,
+            data: response.data || null,
+            error: response.error
+          }
+      }
+
+
+      async updateOnlineUsers({isOnline}: {isOnline: boolean}): Promise<UserResponse>{
+          const response= await this.request<User>(`/user/onlineStatus`, {
+            method: 'PUT'
+          });
+
+          return {
+            success: response.success,
+            status: response.status,
+            data: response.data || null,
+            message: response.message,
+            error: response.error
+          };
+      }
+
+      // async getCurrentRoom(): Promise<CompleteUserResponse>{
+      //     const response= await this.request<CompleteUserData>(`/user/currentRoom`, {
+      //       method: 'GET'
+      //     });
+
+      //     return {
+      //       success: response.success,
+      //       status: response.status,
+      //       data: response ||  null,
+      //       message: response.message,
+      //       error: response.error
+      //     };
+      // }
+
+
+      async leaveRoom(): Promise<ApiResponse>{
+        const response= await this.request("/user/leaveroom", {
+          method: "GET"
+        });
+        return{
+          status: response.status,
+          success: response.success,
+          message: response.message,
+          error: response.error
+        }
+      }
+      // Words Controller
+
 
 
       // Game-related API methods
@@ -466,6 +537,59 @@ class ApiService{
       }
       // Room-related API methods
 
+
+      async createRoom(roomData: Room): Promise<SingleRoomResponse>{
+        const response= await this.request<Room>("/room", {
+          method: "POST"
+        });
+
+        return {
+          status: response.status,
+          success: response.success,
+          message: response.message,
+          data: response.data || null,
+          error: response.error
+        }
+      }
+
+      async updateRoomSettings(roomData: Room): Promise<SingleRoomResponse>{
+        const response= await this.request<Room>(`/room/settings/${roomData._id}`, {
+          method: "PUT"
+        });
+        return {
+          status: response.status,
+          success: response.success,
+          message: response.message,
+          data: response.data || null,
+          error: response.error
+        };
+      }
+
+      async getActiveRooms():Promise<RoomListResponse>{
+        const response= await this.request<Room[]>("/room", {
+          method: "GET"
+        });
+        return {
+          status: response.status,
+          success: response.success,
+          message: response.message,
+          data: response.data || null,
+          error: response.error
+        }
+      }
+
+      async startRoom({roomId}: {roomId: number}):Promise<SingleRoomResponse>{
+        const response= await this.request<Room>(`/room/startGame/${roomId}`,{
+          method: "POST"
+        });
+        return {
+          success: response.success,
+          status: response.status,
+          message: response.message,
+          data: response.data || null,
+          error: response.error
+        };
+      } 
 
       async joinRoom(roomCode: string): Promise<ApiResponse<any>> {
         const response = await this.request('/api/rooms/join', {

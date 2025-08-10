@@ -196,6 +196,22 @@ export interface User{
   enterpriseTag: string
 }
 
+export interface CompleteUserData{
+  id: string
+  userName: string
+  email: string
+  passwordHash: string
+  avatar: string
+  createdAt: string
+  isAdmin: true
+  lastOnline: Date
+  currentRoomId: Room
+  isOnline: boolean
+  totalGamesPlayed: number
+  totalWins: number
+  enterpriseTag: string
+}
+
 export interface Sessions{
   userId: string
   id: string
