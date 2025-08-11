@@ -112,7 +112,7 @@ export default function DrawsurusGame() {
     }
   }, [])
   
-  // Lobby data (minimal data needed for lobby)
+  // Lobby data minimal data needed for lobby)
   const [lobbyData, setLobbyData] = useState<LobbyData>({
     players: [],
     settings: {
