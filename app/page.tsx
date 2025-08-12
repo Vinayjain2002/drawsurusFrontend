@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import { Toaster } from "@/components/ui/toaster"
 import LobbyScreen from "@/components/lobby-screen"
 import GameScreen from "@/components/game-screen"
@@ -20,7 +20,8 @@ import type {
   Round,
   FinalScore,
   UserStats,
-  Word
+  Word,
+  User
 } from "@/utils/types/game"
 
 export type GameState = "lobby" | "game" | "gameOver"
@@ -30,8 +31,8 @@ export type GameState = "lobby" | "game" | "gameOver"
 export interface LobbyData {
   players: Player[]
   settings: GameSettings
-  gameId: string
-  roomCode?: string
+  gameId: string | null
+  roomCode: string
   status?: "waiting" | "playing" | "completed"
 }
 
@@ -55,6 +56,8 @@ export interface GameData extends LobbyData, GamePlayData {
 const AVATARS = ["🦕", "🎨", "🌟", "🎯", "🚀", "🎪", "🎭", "🎨", "🦄", "🌈", "⭐", "🎊"]
 
 export default function DrawsurusGame() {
+  const apiService = useMemo(() => new ApiService('http://localhost:5000'), []);
+
   const guestUsername = "Guest Player " + Math.random().toString(36).substr(2, 5);
   const [gameState, setGameState] = useState<GameState>("lobby")
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null)
@@ -113,12 +116,12 @@ export default function DrawsurusGame() {
       hasJoinedRef.current = true;
       setIsGuestMode(true);
       createGuestPlayer(guestUsername, true, "drawsurus"); // Create guest player
-      handleJoinGame("Guest Player", true);
+      // handleJoinGame("Guest Player", true);
       localStorage.removeItem("guestMode"); // Clear the flag
     } else if (user && !currentPlayer && !hasJoinedRef.current) {
       hasJoinedRef.current = true;
       const playerName = user.userName;
-      handleJoinGame(playerName, true); // Auto-create game as host
+      // handleJoinGame(playerName, true); // Auto-create game as host
     }
   }, [user, currentPlayer]);
 
@@ -143,7 +146,7 @@ export default function DrawsurusGame() {
     const apiService = new ApiService("http://localhost:5000");
     const roomRequest: Room= {
       hostId: currentPlayer?.userId || "",
-      maxPlayers= 8,
+      maxPlayers: 8,
       players: currentPlayer ? [currentPlayer] : [],
       status: "waiting",
       createdAt: new Date().toISOString(),
@@ -154,10 +157,12 @@ export default function DrawsurusGame() {
         allowCustomWords: false,
         maxPlayers: 8,
         category: "all",
-      }
+      },
+      enterpriseTag: "drawsurus",
+      updatedAt: new Date().toISOString(),
     }
     const roomResponse = await apiService.createRoom(roomRequest);
-    if(roomResponse.status== 201){
+    if(roomResponse.status== 201 && roomResponse.data){
       // so the room is created Successfully
       const newRoom: Room = roomResponse.data;
       console.log("New Room Created:", newRoom);
@@ -187,19 +192,19 @@ export default function DrawsurusGame() {
     })
   }, [toast])
 
-  // Lobby data (minimal data needed for lobby)
-  const [lobbyData, setLobbyData] = useState<LobbyData>({
-    players: currentPlayer ? [currentPlayer] : [],
-    settings: {
-      roundTime: 60,
-      roundsPerGame: 3,
-      wordDifficulty: "medium",
-      allowCustomWords: false,
-      maxPlayers: 8,
-      category: "all",
-    },
-    gameId: Math.random().toString(36).substr(2, 9),
-  })
+  const [lobbyData, setLobbyData] = useState<LobbyData>(null as any) // Initialize with null to avoid TypeScript errors;
+  // ({
+  //   players: [],
+  //   settings: {
+  //     roundTime: 60,
+  //     roundsPerGame: 3,
+  //     wordDifficulty: "medium",
+  //     allowCustomWords: false,
+  //     maxPlayers: 8,
+  //     category: "all",
+  //   },
+  //   gameId: Math.random().toString(36).substr(2, 9),
+  // })
 
   // Game data (only created when game starts)
   const [gamePlayData, setGamePlayData] = useState<GamePlayData | null>(null)
@@ -257,86 +262,172 @@ export default function DrawsurusGame() {
   );
 
 
-  const handleJoinGame = useCallback(
-    (playerName: string, isHost = false) => {
-      if (!playerName || playerName.trim() === "") {
-        toast({
-          title: "Invalid Player Name",
-          description: "Please enter a valid player name.",
-          variant: "destructive",
-        })
-        return
-      }
+  const handleJoinGame = useCallback(async (
+    playerName: string, 
+    isHost = false,
+    roomCode?: string,
+    user: User
+  ) => {
+    if (!playerName?.trim()) {
+      toast({
+        title: "Invalid Player Name",
+        description: "Please enter a valid player name.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)]
+    try {
+      const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
       const newPlayer: Player = {
-        userId: Math.random().toString(36).substr(2, 9),
+        userId: user.id,
         username: playerName,
         score: 0,
-        isReady: isHost, // Host is automatically ready
+        isReady: isHost,
         isHost,
         avatar: randomAvatar,
         correctGuesses: 0,
         drawings: 0,
         joinedAt: new Date().toISOString(),
+      };
+
+      if (isHost) {
+        // Create new room if host
+        const roomData: Room = {
+          hostId: newPlayer.userId,
+          maxPlayers: 8,
+          players: [newPlayer],
+          status: "waiting",
+          settings: {
+            roundTime: 60,
+            roundsPerGame: 3,
+            wordDifficulty: "medium",
+            allowCustomWords: false,
+            maxPlayers: 8,
+            category: "all",
+          },
+          enterpriseTag: "drawsurus",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+        const roomResponse = await apiService.createRoom(roomData);
+
+        if (roomResponse.status === 201 && roomResponse.data && roomResponse.data._id && roomResponse.data.roomCode) {
+          setCurrentPlayer(newPlayer);
+          setLobbyData({
+            players: [newPlayer],
+            settings: roomResponse.data.settings,
+            gameId: roomResponse.data._id ,
+            roomCode: roomResponse.data.roomCode,
+            status: "waiting"
+          });
+        }
+      } else if (roomCode) {
+        const joinResponse = await apiService.joinRoom(roomCode ?? "");
+        if (joinResponse.status === 200 && joinResponse.data) {
+          setCurrentPlayer(newPlayer);
+          setLobbyData((prev) => ({
+            ...prev,
+            players: [...prev.players, newPlayer],
+            settings: joinResponse.data.settings,
+            gameId: joinResponse.data.currentGameId || '',
+            roomCode: joinResponse.data.roomCode,
+            status: joinResponse.data.status
+          }));   
+        }
       }
 
-      setCurrentPlayer(newPlayer)
-      setLobbyData((prev) => ({
-        ...prev,
-        players: [...prev.players, newPlayer],
-      }))
-
       toast({
-        title: isHost ? "Game Created!" : "Joined Game!",
+        title: isHost ? "Room Created!" : "Joined Room!",
         description: `Welcome ${playerName}! ${isHost ? "You're the host." : ""}`,
-      })
-    },
-    [toast],
-  )
+      });
+    } catch (error) {
+      console.error('Join game error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to join game. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [apiService, toast, user]);
+
 
 const handleStartGame = useCallback(async () => {
-  const readyPlayers = lobbyData.players.filter((p) => p.isReady || p.isHost);
+    if (!lobbyData.roomCode || !currentPlayer?.isHost) return;
 
-  if (readyPlayers.length === 0) {
-    toast({
-      title: "Cannot Start Game",
-      description: "At least one player must be ready!",
-      variant: "destructive",
-    });
-    return;
-  }
+    try {
+      const readyPlayers = lobbyData.players.filter(p => p.isReady || p.isHost);
+      if (readyPlayers.length ==0) {
+        toast({
+          title: "Cannot Start Game",
+          description: "Need at least 2 ready players!",
+          variant: "destructive",
+        });
+        return;
+      }
 
-  const firstDrawer = readyPlayers[0];
-  const newWord = await getRandomWord(lobbyData.settings.category || "all");
-  const wordString = typeof newWord === "string" ? newWord : newWord.word;
-  const wordHint = generateWordHint(wordString, lobbyData.settings.wordDifficulty);
+      const wordsResponse = await apiService.getWords({
+              category:  "all",
+              difficulty: "medium"
+      });
 
-  // Create game play data
-  const newGamePlayData: GamePlayData = {
-    currentRound: 1,
-    currentDrawer: firstDrawer.userId,
-    currentWord: wordString,
-    wordHint,
-    timeLeft: lobbyData.settings.roundTime,
-    roundStartTime: Date.now(),
-  };
+      if (wordsResponse.status !== 200 || !wordsResponse.data?.length) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch words. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-  setGamePlayData(newGamePlayData);
-  setLobbyData((prev) => ({
-    ...prev,
-    players: prev.players.map((p) => ({
-      ...p,
-      isDrawing: p.userId === firstDrawer.userId,
-    })),
-  }));
+      const firstDrawer = readyPlayers[0];
+      const gameResponse = await apiService.createGame({
+        roomId: lobbyData.gameId,
+        rounds: [],
+        status: "playing",
+        settings: lobbyData.settings,
+        enterpriseTag: "drawsurus"
+      });
 
-  setGameState("game");
-  toast({
-    title: "Game Started!",
-    description: `${firstDrawer.username} is drawing first!`,
-  });
-}, [lobbyData.players, lobbyData.settings, getRandomWord, generateWordHint, toast]);
+      if (gameResponse.status === 201 && gameResponse.data) {
+        const wordData = wordsResponse.data[0];
+        const wordHint = generateWordHint(wordData.word, lobbyData.settings.wordDifficulty);
+
+        setGamePlayData({
+          currentRound: 1,
+          currentDrawer: firstDrawer.userId,
+          currentWord: wordData.word,
+          wordHint,
+          timeLeft: lobbyData.settings.roundTime,
+          roundStartTime: Date.now(),
+        });
+
+        setGameState("game");
+        toast({
+          title: "Game Started!",
+          description: `${firstDrawer.username} is drawing first!`,
+        });
+        setLobbyData((prev) => ({
+          ...prev,
+          players: prev.players.map((p) => ({
+            ...p,
+            isDrawing: p.userId === firstDrawer.userId,
+          }))
+        }));
+
+      }
+    } catch (error) {
+      console.error('Start game error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start game. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [apiService, lobbyData, currentPlayer, generateWordHint, toast]);
+
+  // ... rest of your component code ...
+}
 
   const handleGameEnd = useCallback(
     (winner: Player) => {

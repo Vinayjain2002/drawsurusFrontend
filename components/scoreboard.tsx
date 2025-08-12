@@ -15,7 +15,7 @@ export default function Scoreboard({ players, currentRound }: ScoreboardProps) {
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
   const maxScore = Math.max(...players.map((p) => p.score), 1)
 
-  const getRankIcon = (index: number) => {
+    const getRankIcon = (index: number) => {
     switch (index) {
       case 0:
         return <Trophy className="w-5 h-5 text-yellow-500" />
@@ -30,7 +30,7 @@ export default function Scoreboard({ players, currentRound }: ScoreboardProps) {
     }
   }
 
-  const getRankColor = (index: number) => {
+   const getRankColor = (index: number) => {
     switch (index) {
       case 0:
         return "bg-gradient-to-r from-yellow-100 to-yellow-200 border-yellow-300"

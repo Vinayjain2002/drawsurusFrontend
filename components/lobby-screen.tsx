@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+
+import { useAuth } from "@/contexts/auth-context"
+import { useState} from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,14 +15,8 @@ import { Users, Settings, Crown, Check, X, UserX, Copy, Share2, Gamepad2 } from 
 import { useToast } from "@/hooks/use-toast"
 import type { Player, GameSettings } from "@/utils/types/game"
 import KeywordUpload from "@/components/keyword-upload"
+import { LobbyData } from "@/app/page"
 
-interface LobbyData {
-  players: Player[]
-  settings: GameSettings
-  gameId: string
-  roomCode?: string
-  status?: "waiting" | "playing" | "completed"
-}
 
 interface LobbyScreenProps {
   gameData: LobbyData
@@ -34,42 +30,44 @@ interface LobbyScreenProps {
   onKickPlayer: (playerId: string) => void
 }
 
+
 export default function LobbyScreen({
-  gameData, // Now only contains: players, settings, gameId (no unnecessary game state!)
+  gameData,
   currentPlayer,
   customWords,
-  onUpdateCustomWords,
+ onUpdateCustomWords,
   onJoinGame,
   onStartGame,
   onUpdateSettings,
   onToggleReady,
-  onKickPlayer,
-}: LobbyScreenProps) {
-  const [playerName, setPlayerName] = useState("")
-  const [gameCode] = useState(gameData.gameId.toUpperCase())
-  const { toast } = useToast()
-
-  const handleJoin = () => {
-    if (playerName.trim()) {
-      onJoinGame(playerName.trim(), gameData.players.length === 0)
+  onKickPlayer}: LobbyScreenProps){
+  // Show loading state while auth is initializing
+  const [playerName, setPlayerName]= useState("")
+  const [gameCode]= useState(gameData.gameId?.toUpperCase());
+  const {toast}= useToast();
+  
+  const handleJoin= ()=>{
+    if(playerName.trim()){
+      onJoinGame(playerName.trim(), gameData.players.length== 0);
     }
   }
 
-  const handleCreateGame = () => {
-    if (playerName.trim()) {
-      onJoinGame(playerName.trim(), true)
-    }
-  }
-
-  const copyGameCode = () => {
-    navigator.clipboard.writeText(gameCode)
+  const copyGameCode= ()=>{
+    navigator.clipboard.writeText(gameCode ?? "");
     toast({
       title: "Game Code Copied!",
-      description: "Share this code with friends to join your game.",
-    })
+      description: "Share this code with your friends to join the game.",
+    });
   }
 
-  const shareGame = () => {
+  const handleCreateGame=()=>{
+    if(playerName.trim()){
+      //As we are creating a new game, we set the host to true
+      onJoinGame(playerName.trim(), true);
+    }
+  }
+
+    const shareGame = () => {
     if (navigator.share) {
       navigator.share({
         title: "Join my Drawsurus game!",
@@ -81,65 +79,65 @@ export default function LobbyScreen({
     }
   }
 
-  // Remove backend constraint - any number of players can start
-  const canStartGame = currentPlayer?.isHost && gameData.players.length > 0
+    const canStartGame = currentPlayer?.isHost && gameData.players.length > 0
 
-  if (!currentPlayer) {
-    return (
-      <div className="max-w-lg mx-auto">
-        <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-0">
-          <CardHeader className="text-center pb-4">
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Join the Adventure!
-            </CardTitle>
-            <p className="text-gray-600">Enter your name to start playing</p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Input
-                placeholder="Your awesome name..."
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleJoin()}
-                className="text-center text-lg py-3 border-2 focus:border-purple-400"
-                maxLength={20}
-              />
-              <p className="text-xs text-gray-500 text-center">{playerName.length}/20 characters</p>
-            </div>
+    if(!currentPlayer){
+       return (
+          <div className="max-w-lg mx-auto">
+            <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-0">
+              <CardHeader className="text-center pb-4">
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Join the Adventure!
+                </CardTitle>
+                <p className="text-gray-600">Enter your name to start playing</p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Your awesome name..."
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && handleJoin()}
+                    className="text-center text-lg py-3 border-2 focus:border-purple-400"
+                    maxLength={20}
+                  />
+                  <p className="text-xs text-gray-500 text-center">{playerName.length}/20 characters</p>
+                </div>
 
-            <div className="grid grid-cols-1 gap-3">
-              <Button
-                onClick={handleCreateGame}
-                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 text-lg font-semibold shadow-lg"
-                disabled={!playerName.trim()}
-              >
-                <Gamepad2 className="w-5 h-5 mr-2" />
-                Create New Game
-              </Button>
-              <Button
-                onClick={handleJoin}
-                variant="outline"
-                className="py-3 text-lg font-semibold border-2 hover:bg-purple-50 bg-transparent"
-                disabled={!playerName.trim()}
-              >
-                <Users className="w-5 h-5 mr-2" />
-                Join Existing Game
-              </Button>
-            </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <Button
+                    onClick={handleCreateGame}
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 text-lg font-semibold shadow-lg"
+                    disabled={!playerName.trim()}
+                  >
+                    <Gamepad2 className="w-5 h-5 mr-2" />
+                    Create New Game
+                  </Button>
+                  <Button
+                    onClick={handleJoin}
+                    variant="outline"
+                    className="py-3 text-lg font-semibold border-2 hover:bg-purple-50 bg-transparent"
+                    disabled={!playerName.trim()}
+                  >
+                    <Users className="w-5 h-5 mr-2" />
+                    Join Existing Game
+                  </Button>
+                </div>
 
-            <div className="text-center pt-4 border-t">
-              <p className="text-sm text-gray-500 mb-2">Game Features</p>
-              <div className="flex justify-center gap-4 text-xs text-gray-600">
-                <span>🎨 Real-time Drawing</span>
-                <span>💬 Live Chat</span>
-                <span>🏆 Scoring System</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+                <div className="text-center pt-4 border-t">
+                  <p className="text-sm text-gray-500 mb-2">Game Features</p>
+                  <div className="flex justify-center gap-4 text-xs text-gray-600">
+                    <span>🎨 Real-time Drawing</span>
+                    <span>💬 Live Chat</span>
+                    <span>🏆 Scoring System</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )
+    }
+
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -411,5 +409,5 @@ export default function LobbyScreen({
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

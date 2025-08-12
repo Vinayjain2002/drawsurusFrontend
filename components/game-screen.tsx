@@ -1,3 +1,85 @@
+
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import DrawingCanvas from "@/components/drawing-canvas"
+import ChatBox from "@/components/chat-box"
+import Scoreboard from "@/components/scoreboard"
+import { Timer, Palette, Crown, Lightbulb, SkipForward, Pause, Play } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { type Player, type GameSettings, ChatMessage } from "@/utils/types/game"
+import VideoMeeting from "@/components/video-meeting"
+import WordGuessing from "@/components/word-guessing"
+import ScorecardPopup from "@/components/scorecard-popup"
+import { GamePlayData, LobbyData } from "@/app/page"
+
+interface GameData extends LobbyData, GamePlayData{
+  winner?: Player
+}
+
+interface GameScreenProps {
+  gameData: GameData
+  currentPlayer: Player
+  onGameEnd: (winner: Player) => void
+  onUpdateGameData: (updater: (prev: GameData) => GameData) => void
+  getRandomWord: (category: GameData["settings"]["category"]) => string
+  generateWordHint: (word: string, difficulty: GameData["settings"]["wordDifficulty"]) => string
+}
+
+
+export default function GameScreen({
+  gameData,
+  currentPlayer,
+  onGameEnd,
+  onUpdateGameData,
+  getRandomWord,
+  generateWordHint
+}: GameScreenProps) {
+  const [chatMessages, setChatMessages]= useState<ChatMessage[]>([]);
+  const [isPaused, setIsPaused]= useState(false);
+  const [showHint, setShowHint]= useState(false);
+  const [canvasData, setCanvasData]= useState<string>("");
+
+  const {toast} = useToast();
+  const [isVideoExpanded, setIsVideoExpanded]= useState(false);
+  const [showScreCardPopup, setShowScorecardPopup] = useState(false);
+  
+  const isCurrentPlayerDrawing= currentPlayer.userId=== gameData.currentDrawer;
+  const currentDrawer= gameData.players.find((p)=> p.userId === gameData.currentDrawer);
+
+  const currentDrawerName= currentDrawer?.username || "Unknown Drawer";
+
+  // Timer with the Paused state
+  useEffect(()=>{
+    if(gameData.timeLeft > 0 && !isPaused){
+        const timer= setTimeout(()=>{
+            onUpdateGameData((prev) => ({
+          ...prev,
+          timeLeft: prev.timeLeft - 1,
+        }))
+      }, 1000);
+
+      return ()=> clearTimeout(timer);
+    }
+    else if(gameData.timeLeft=== 0){
+      handleRoundEnd(false);
+    }
+  }, [gameData.timeLeft, isPaused]);
+
+  // Adding the System Message when the game Starts
+
+ }
+
+
+
+
+
+
+
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
@@ -56,21 +138,21 @@ interface ChatMessage {
   avatar?: string
 }
 
-// interface ChatMessage {
-//   chatId: string
-//   roomId: string
-//   userId?: string
-//   username?: string
-//   message?: string
-//   type?: "guess" | "chat" | "system"
-//   gameId?: string
-//   roundNumber?: number
-//   timestamp: Date
-//   isCorrectGuess?: boolean
-//   points: number
-//   timeTaken?: number
-//   avatar?: string
-// }
+interface ChatMessage {
+  chatId: string
+  roomId: string
+  userId?: string
+  username?: string
+  message?: string
+  type?: "guess" | "chat" | "system"
+  gameId?: string
+  roundNumber?: number
+  timestamp: Date
+  isCorrectGuess?: boolean
+  points: number
+  timeTaken?: number
+  avatar?: string
+}
 
 export default function GameScreen({
   gameData,

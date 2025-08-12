@@ -1,5 +1,4 @@
 "use client"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,14 +6,15 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Lightbulb, Target, Zap } from "lucide-react"
 
-interface WordGuessingProps {
-  currentWord: string
-  wordHint: string
-  onGuess: (guess: string) => void
-  disabled?: boolean
-  showHint?: boolean
-  onShowHint?: () => void
+interface WordGuessingProps{
+    currentWord: string
+    wordHint: string
+    onGuess: (guess: string)=> void
+    disabled?: boolean
+    showHint?: boolean
+    onShowHint?: ()=> void
 }
+
 
 export default function WordGuessing({
   currentWord,
@@ -22,10 +22,12 @@ export default function WordGuessing({
   onGuess,
   disabled = false,
   showHint = false,
-  onShowHint,
-}: WordGuessingProps) {
-  const [guess, setGuess] = useState("")
-  const [quickGuesses] = useState([
+  onShowHint
+}: WordGuessingProps){
+  const [guess, setGuess]= useState("");
+
+  // Need to define the Quick guesses array route and need to set that one also
+  const [quickGuesses, setQuickGuesses] = useState([
     "CAT",
     "DOG",
     "HOUSE",
@@ -37,18 +39,18 @@ export default function WordGuessing({
     "SUN",
     "MOON",
     "STAR",
-    "HEART",
-  ])
+    "HEART"
+  ]);
 
-  const handleSubmitGuess = () => {
-    if (guess.trim()) {
-      onGuess(guess.trim())
-      setGuess("")
-    }
+  const handleSubmitGuess=()=>{
+      if(guess.trim()){
+        onGuess(guess.trim());
+        setGuess("");
+      }
   }
 
-  const handleQuickGuess = (word: string) => {
-    onGuess(word)
+  const handleQuickGuess= (word: string)=>{
+    onGuess(word);
   }
 
   const getHintProgress = () => {
@@ -58,7 +60,7 @@ export default function WordGuessing({
   }
 
   return (
-    <Card className="bg-white/95 backdrop-blur-sm shadow-xl border-0">
+     <Card className="bg-white/95 backdrop-blur-sm shadow-xl border-0">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">

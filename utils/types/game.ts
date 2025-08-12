@@ -97,12 +97,12 @@ export interface FinalScore {
 
 // Room
 export interface Room {
-  _id: string
-  roomCode: string
+  _id?: string
+  roomCode?: string
   hostId: string
   maxPlayers: number
   players: Player[]
-  currentGameId: string | null
+  currentGameId?: string | null
   status: "waiting" | "playing" | "completed"
   createdAt: string
   enterpriseTag: string

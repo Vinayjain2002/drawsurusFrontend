@@ -1,4 +1,6 @@
+
 "use client"
+
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -8,7 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Trophy, Crown, Star, Share2, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import type { GameData } from "@/app/page"
+import { GameData } from "@/app/page"
 
 interface ScorecardPopupProps {
   isOpen: boolean
@@ -18,13 +20,18 @@ interface ScorecardPopupProps {
   onBackToLobby: () => void
 }
 
-export default function ScorecardPopup({ isOpen, onClose, gameData, onPlayAgain, onBackToLobby }: ScorecardPopupProps) {
-  const [showDetails, setShowDetails] = useState(false)
+export default function ScorecardPopup({
+  isOpen, // use this to control the visibility of the popup
+  onClose, // function to close the popup
+  gameData,
+  onPlayAgain,
+  onBackToLobby
+}: ScorecardPopupProps) {
+  const [showDetails, setShowDetails]= useState(false);
   const sortedPlayers = [...gameData.players].sort((a, b) => b.score - a.score)
   const winner = sortedPlayers[0]
-  const maxScore = Math.max(...gameData.players.map((p) => p.score), 1)
-  const { toast } = useToast()
-
+  const {toast}= useToast();
+  const maxScore= Math.max(...gameData.players.map((p)=> p.score),1);
   const getRankIcon = (index: number) => {
     switch (index) {
       case 0:
@@ -37,9 +44,8 @@ export default function ScorecardPopup({ isOpen, onClose, gameData, onPlayAgain,
         return <span className="w-6 h-6 flex items-center justify-center font-bold text-gray-500">#{index + 1}</span>
     }
   }
-
   const shareResults = () => {
-    const results = `🦕 Drawsurus Game Results!\n\n🏆 Winner: ${winner.name} (${winner.score} points)\n\nPlay Drawsurus now! 🎨`
+    const results = `🦕 Drawsurus Game Results!\n\n🏆 Winner: ${winner.username} (${winner.score} points)\n\nPlay Drawsurus now! 🎨`
 
     if (navigator.share) {
       navigator.share({
@@ -55,26 +61,28 @@ export default function ScorecardPopup({ isOpen, onClose, gameData, onPlayAgain,
     }
   }
 
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="relative">
-          <Button variant="ghost" size="sm" onClick={onClose} className="absolute right-0 top-0">
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+           <Button variant="ghost" size="sm" onClick={onClose} className="absolute right-0 top-0">
             <X className="w-4 h-4" />
           </Button>
-          <DialogTitle className="text-center">
+          <DialogTitle className="text-center"> 
             <div className="text-6xl mb-4">🎉</div>
+            <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-2" />
             <h2 className="text-3xl font-bold mb-2">Game Complete!</h2>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+          <div className="space-y-6">
           {/* Winner Celebration */}
           <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 p-6 text-center text-white rounded-xl">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="text-3xl">{winner.avatar}</div>
+              <div className="text-3xl">{winner?.avatar}</div>
               {winner.isHost && <Crown className="w-8 h-8" />}
-              <h3 className="text-2xl font-bold">{winner.name} Wins!</h3>
+              <h3 className="text-2xl font-bold">{winner?.username} Wins!</h3>
             </div>
             <Badge className="text-xl px-6 py-2 bg-white/20 border-white/30 text-white">{winner.score} points</Badge>
           </div>
@@ -86,7 +94,7 @@ export default function ScorecardPopup({ isOpen, onClose, gameData, onPlayAgain,
 
               return (
                 <Card
-                  key={player.id}
+                  key={player.userId}
                   className={`${
                     index === 0
                       ? "bg-gradient-to-r from-yellow-100 to-yellow-200 border-yellow-300"
@@ -98,7 +106,7 @@ export default function ScorecardPopup({ isOpen, onClose, gameData, onPlayAgain,
                   <CardContent className="p-4 text-center">
                     <div className="flex justify-center mb-2">{getRankIcon(index)}</div>
                     <div className="text-2xl mb-2">{player.avatar}</div>
-                    <h4 className="font-bold text-lg">{player.name}</h4>
+                    <h4 className="font-bold text-lg">{player.username}</h4>
                     <Badge className="text-lg font-bold px-3 py-1 mb-2">{player.score}</Badge>
                     <Progress value={scoreProgress} className="h-2 mb-2" />
                     <div className="text-xs text-gray-600">{player.correctGuesses} correct guesses</div>
@@ -121,14 +129,14 @@ export default function ScorecardPopup({ isOpen, onClose, gameData, onPlayAgain,
             <div className="space-y-3">
               <h3 className="text-lg font-bold text-center">All Players</h3>
               {sortedPlayers.map((player, index) => (
-                <div key={player.id} className="flex items-center justify-between p-4 bg-white rounded-lg border">
+                <div key={player.userId} className="flex items-center justify-between p-4 bg-white rounded-lg border">
                   <div className="flex items-center gap-3">
                     {getRankIcon(index)}
                     <div className="text-xl">{player.avatar}</div>
                     <div>
-                      <div className="font-semibold">{player.name}</div>
+                      <div className="font-semibold">{player.username}</div>
                       <div className="text-sm text-gray-600">
-                        {player.correctGuesses}/{gameData.settings.rounds} correct
+                        {player.correctGuesses}/{gameData.settings.roundsPerGame} correct
                       </div>
                     </div>
                   </div>
@@ -146,7 +154,7 @@ export default function ScorecardPopup({ isOpen, onClose, gameData, onPlayAgain,
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
-                  <p className="text-2xl font-bold text-blue-600">{gameData.settings.rounds}</p>
+                  <p className="text-2xl font-bold text-blue-600">{gameData.settings.roundsPerGame}</p>
                   <p className="text-sm text-gray-600">Rounds</p>
                 </div>
                 <div>
@@ -161,7 +169,7 @@ export default function ScorecardPopup({ isOpen, onClose, gameData, onPlayAgain,
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-orange-600">
-                    {Math.round((gameData.settings.timePerRound * gameData.settings.rounds) / 60)}m
+                    {Math.round((gameData.settings.roundTime * gameData.settings.roundsPerGame) / 60)}m
                   </p>
                   <p className="text-sm text-gray-600">Duration</p>
                 </div>
@@ -200,5 +208,8 @@ export default function ScorecardPopup({ isOpen, onClose, gameData, onPlayAgain,
         </div>
       </DialogContent>
     </Dialog>
+        
   )
 }
+
+

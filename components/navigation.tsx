@@ -9,39 +9,47 @@ export default function Navigation() {
   const { user, logout } = useAuth()
 
   return (
-    <nav className="absolute top-4 right-4 z-50">
-      <div className="flex items-center gap-2">
-        {user ? (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 text-white">
-              <User className="h-4 w-4" />
-              <span className="text-sm font-medium">{user.name}</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={logout}
-              className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
-            >
-              <LogOut className="h-4 w-4 mr-1" />
-              Logout
-            </Button>
+    <nav className="bg-white/10 backdrop-blur-sm">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center">
+            <span className="text-white font-semibold">Drawsurus</span>
           </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Link href="/login">
-              <Button variant="outline" size="sm" className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button size="sm" className="bg-white text-purple-600 hover:bg-white/90">
-                Sign Up
-              </Button>
-            </Link>
+
+          <div className="flex items-center gap-4">
+            {user ? (
+              <>
+                <span className="text-white/80">
+                  {user.userName}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  onClick={logout}
+                  className="text-white/80 hover:text-white"
+                >
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="ghost"
+                  onClick={() => window.location.href = '/login'}
+                  className="text-white/80 hover:text-white"
+                >
+                  Login
+                </Button>
+                <Button 
+                  variant="secondary"
+                  onClick={() => window.location.href = '/signup'}
+                >
+                  Sign Up
+                </Button>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </nav>
   )
-} 
+}
