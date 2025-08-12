@@ -14,13 +14,14 @@ interface GameOverScreenProps {
   onBackToLobby: () => void
 }
 
-export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }: GameOverScreenProps) {
-  const sortedPlayers = [...gameData.players].sort((a, b) => b.score - a.score)
-  const winner = sortedPlayers[0]
-  const maxScore = Math.max(...gameData.players.map((p) => p.score), 1)
-  const { toast } = useToast()
+export default function GameOverScreenProps({gameData, onPlayAgain, onBackToLobby}: GameOverScreenProps){
+  const sortedPlayers= [...gameData.players].sort((a,b)=> b.score - a.score);
+  const winner= sortedPlayers[0];
+  const maxScore= Math.max(...gameData.players.map((p)=> p.score), 1);
 
-  const getRankIcon = (index: number) => {
+  const {toast}= useToast();
+
+const getRankIcon = (index: number) => {
     switch (index) {
       case 0:
         return <Trophy className="w-6 h-6 text-yellow-500" />
@@ -46,12 +47,12 @@ export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }:
     }
   }
 
-  const shareResults = () => {
+    const shareResults = () => {
     const results =
-      `🦕 Drawsurus Game Results!\n\n🏆 Winner: ${winner.name} (${winner.score} points)\n\n` +
+      `🦕 Drawsurus Game Results!\n\n🏆 Winner: ${winner.username} (${winner.score} points)\n\n` +
       sortedPlayers
         .slice(0, 3)
-        .map((p, i) => `${i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"} ${p.name}: ${p.score} points`)
+        .map((p, i) => `${i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"} ${p.username}: ${p.score} points`)
         .join("\n") +
       `\n\nPlay Drawsurus now! 🎨`
 
@@ -69,12 +70,14 @@ export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }:
     }
   }
 
+
+
   const downloadResults = () => {
     const results = {
       gameId: gameData.gameId,
-      winner: winner.name,
+      winner: winner.username,
       players: sortedPlayers.map((p) => ({
-        name: p.name,
+        name: p.username,
         score: p.score,
         correctGuesses: p.correctGuesses,
         avatar: p.avatar,
@@ -92,19 +95,20 @@ export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }:
     URL.revokeObjectURL(url)
   }
 
+
   const getPlayerAchievements = (player: (typeof sortedPlayers)[0], index: number) => {
     const achievements = []
 
     if (index === 0) achievements.push({ icon: "🏆", text: "Winner!" })
-    if (player.correctGuesses === gameData.settings.rounds) achievements.push({ icon: "🎯", text: "Perfect Guesser" })
+    if (player.correctGuesses === gameData.settings.roundsPerGame) achievements.push({ icon: "🎯", text: "Perfect Guesser" })
     if (player.score > 100) achievements.push({ icon: "💯", text: "High Scorer" })
     if (player.isHost) achievements.push({ icon: "👑", text: "Host" })
 
     return achievements
   }
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
+  return(
+     <div className="max-w-4xl mx-auto space-y-6">
       {/* Winner Celebration */}
       <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-0 overflow-hidden">
         <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 p-6 text-center text-white">
@@ -114,7 +118,7 @@ export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }:
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="text-3xl">{winner.avatar}</div>
               {winner.isHost && <Crown className="w-8 h-8" />}
-              <h3 className="text-3xl font-bold">{winner.name} Wins!</h3>
+              <h3 className="text-3xl font-bold">{winner.username} Wins!</h3>
             </div>
             <Badge className="text-xl px-6 py-2 bg-white/20 border-white/30 text-white">{winner.score} points</Badge>
           </div>
@@ -125,11 +129,11 @@ export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }:
               <div>Correct Guesses</div>
             </div>
             <div className="bg-white/20 rounded-lg px-4 py-2">
-              <div className="font-bold">{Math.round(winner.score / gameData.settings.rounds)}</div>
+              <div className="font-bold">{Math.round(winner.score / gameData.settings.roundsPerGame)}</div>
               <div>Avg Points/Round</div>
             </div>
             <div className="bg-white/20 rounded-lg px-4 py-2">
-              <div className="font-bold">{Math.round((winner.correctGuesses / gameData.settings.rounds) * 100)}%</div>
+              <div className="font-bold">{Math.round((winner.correctGuesses / gameData.settings.roundsPerGame) * 100)}%</div>
               <div>Accuracy</div>
             </div>
           </div>
@@ -149,7 +153,7 @@ export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }:
 
               return (
                 <div
-                  key={player.id}
+                  key={player.userId}
                   className={`p-6 rounded-xl ${getRankColor(index)} transition-all hover:scale-[1.02]`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -160,7 +164,7 @@ export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }:
                         <div className="flex items-center gap-2 mb-1">
                           {player.isHost && <Crown className="w-5 h-5 text-yellow-300" />}
                           <span className={`font-bold text-xl ${index < 3 ? "text-white" : "text-gray-800"}`}>
-                            {player.name}
+                            {player.username}
                           </span>
                         </div>
                         <div className="flex gap-2">
@@ -199,13 +203,13 @@ export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }:
                     </div>
                     <div className="text-center">
                       <div className={`font-bold ${index < 3 ? "text-white" : "text-gray-800"}`}>
-                        {Math.round(player.score / Math.max(gameData.settings.rounds, 1))}
+                        {Math.round(player.score / Math.max(gameData.settings.roundsPerGame, 1))}
                       </div>
                       <div className={`text-xs ${index < 3 ? "text-white/80" : "text-gray-500"}`}>Avg/Round</div>
                     </div>
                     <div className="text-center">
                       <div className={`font-bold ${index < 3 ? "text-white" : "text-gray-800"}`}>
-                        {Math.round((player.correctGuesses / gameData.settings.rounds) * 100)}%
+                        {Math.round((player.correctGuesses / gameData.settings.roundsPerGame) * 100)}%
                       </div>
                       <div className={`text-xs ${index < 3 ? "text-white/80" : "text-gray-500"}`}>Accuracy</div>
                     </div>
@@ -231,7 +235,7 @@ export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }:
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div>
-              <p className="text-3xl font-bold text-blue-600">{gameData.settings.rounds}</p>
+              <p className="text-3xl font-bold text-blue-600">{gameData.settings.roundsPerGame}</p>
               <p className="text-sm text-gray-600">Rounds Played</p>
             </div>
             <div>
@@ -246,7 +250,7 @@ export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }:
             </div>
             <div>
               <p className="text-3xl font-bold text-orange-600">
-                {Math.round((gameData.settings.timePerRound * gameData.settings.rounds) / 60)}m
+                {Math.round((gameData.settings.roundTime * gameData.settings.roundsPerGame) / 60)}m
               </p>
               <p className="text-sm text-gray-600">Game Duration</p>
             </div>
@@ -293,4 +297,5 @@ export default function GameOverScreen({ gameData, onPlayAgain, onBackToLobby }:
       </div>
     </div>
   )
+
 }
