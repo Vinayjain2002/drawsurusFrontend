@@ -9,6 +9,334 @@ import Navigation from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
+import ApiService, { SingleGameResponse } from "@/lib/api"
+import type {
+  Player,
+  Room,
+  Game,
+  GameSettings,
+  ChatMessage,
+  Drawing,
+  Round,
+  FinalScore,
+  UserStats,
+  Word,
+  User
+} from "@/utils/types/game"
+import { allowedNodeEnvironmentFlags } from "process"
+
+export type GameState = "lobby" | "game" | "gameOver"
+
+export interface LobbyData {
+  players: Player[]
+  settings: GameSettings
+  gameId: string | null
+  roomCode: string
+  status?: "waiting" | "playing" | "completed"
+}L
+
+// Game play data interface
+export interface GamePlayData {
+  currentRound: number
+  currentDrawer: string
+  currentWord: string
+  wordHint: string
+  timeLeft: number
+  roundStartTime: number
+  isPaused?: boolean
+  showHint?: boolean
+}
+
+export interface GameData extends LobbyData, GamePlayData {
+  winner?: Player
+}
+
+const AVATARS = ["🦕", "🎨", "🌟", "🎯", "🚀", "🎪", "🎭", "🎨", "🦄", "🌈", "⭐", "🎊"]
+
+export default function DrawsurusGame(){
+  const apiService = useMemo(() => new ApiService('http://localhost:5000'), []);
+  
+  const guestUsername = "Guest Player " + Math.random().toString(36).substr(2, 5);
+   const [gameState, setGameState] = useState<GameState>("lobby")
+  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null)
+  const { toast } = useToast()
+  const { user, isLoading } = useAuth()
+  const hasJoinedRef = useRef(false);
+  const [isGuestMode, setIsGuestMode] = useState(false);
+  const [LobbyData, setLobbyData]= useState<LobbyData>(null as any);
+
+  const createGuestPlayer = useCallback(
+    async (username: string, isHost: boolean, enterpriseTag?: string) => {
+      const apiService = new ApiService("http://localhost:5000");
+      
+      const guestUserResponse = await apiService.createGuestUser({
+        userName: username,
+        enterpriseTag: enterpriseTag || "drawsurus"
+      });
+
+      if (guestUserResponse.status === 201 && guestUserResponse.data) {
+        alert("Guest User Created Successfully");
+
+        const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+
+        const guestPlayer: Player = {
+          userId: guestUserResponse.data.id,
+          username: username || "Guest Player",
+          score: 0,
+          isReady: true,
+          isHost: isHost || false,
+          avatar: randomAvatar,
+          correctGuesses: 0,
+          drawings: 0,
+          joinedAt: new Date().toISOString(),
+        };
+
+        setCurrentPlayer(guestPlayer);
+        setLobbyData((prev) => ({
+          ...prev,
+          players: [...prev.players, guestPlayer],
+        }));
+      } else {
+        alert("Failed to create guest user. Please try again later.");
+      }
+    },[]
+  );
+
+  useEffect(() => {
+    refreshUserDetails();
+
+    // Check for guest mode from localStorage
+    const guestMode = localStorage.getItem("guestMode");
+    if (guestMode === "true" && !currentPlayer && !hasJoinedRef.current) {
+      hasJoinedRef.current = true;
+      setIsGuestMode(true);
+      createGuestPlayer(guestUsername, true, "drawsurus"); // Create guest player
+      // handleJoinGame("Guest Player", true);
+      localStorage.removeItem("guestMode"); // Clear the flag
+    } else if (user && !currentPlayer && !hasJoinedRef.current) {
+      hasJoinedRef.current = true;
+      const playerName = user.userName;
+      // handleJoinGame(playerName, true); // Auto-create game as host
+    }
+  }, [user, currentPlayer]);
+
+  // Function to refresh user details from server
+  const refreshUserDetails = useCallback(async () => {
+    const token = localStorage.getItem("auth_token")
+    if (token) {
+      try {
+        const apiService = new ApiService("http://localhost:5000")
+        const userData = await apiService.getCurrentUser()
+        console.log("User details refreshed:", userData);
+        return userData
+      } catch (error) {
+        console.error("Failed to refresh user details:", error)
+        return null
+      }
+    }
+  }, [])
+
+  const createNewGame= useCallback(async()=>{
+      const apiService = new ApiService("http://localhost:5000");
+    const roomRequest: Room= {
+      hostId: currentPlayer?.userId || "",
+      maxPlayers: 8,
+      players: currentPlayer ? [currentPlayer] : [],
+      status: "waiting",
+      createdAt: new Date().toISOString(),
+      settings: {
+        roundTime: 60,
+        roundsPerGame: 3,
+        wordDifficulty: "medium",
+        allowCustomWords: false,
+        maxPlayers: 8,
+        category: "all",
+      },
+      enterpriseTag: "drawsurus",
+      updatedAt: new Date().toISOString(),
+    }
+
+    const roomResponse = await apiService.createRoom(roomRequest);
+    if(roomResponse.status== 201 && roomResponse.data){
+      // so the room is created Successfully
+      const newRoom: Room = roomResponse.data;
+      console.log("New Room Created:", newRoom);
+      alert(newRoom.roomCode);
+    }
+    
+    const gameRequest: Game= {
+      roomId: roomResponse.data?._id || "",
+      rounds: [],
+      gameStartedAt: Date.now().toString(),
+      gameEndedAt: null,
+      status: "waiting",
+      finalScores: [],
+      settings: {
+        roundTime: 60,
+        roundsPerGame: 3,
+        wordDifficulty: "medium",
+        allowCustomWords: false,
+        maxPlayers: 8,
+        category: "alls" 
+      },
+      enterpriseTag: "drawsurus",
+      createdAt: Date.now.toString(),
+      updatedAt: Date.now.toString()
+    }
+    const gameResponse= await apiService.createGame(
+      gameRequest
+    );
+    if(gameResponse.status && gameResponse.data){
+      const newGameData: Game= gameResponse.data;
+        console.log("New Game Created Successfully:", newGameData);
+      alert(newGameData._id);
+    }
+
+    setLobbyData((prev)=> ({
+      ...prev,
+      gameId: gameResponse.data?._id || "",
+      players: [],
+      settings: {
+         roundTime: 60,
+        roundsPerGame: 3,
+        wordDifficulty: "medium",
+        allowCustomWords: false,
+        maxPlayers: 8,
+        category: "alls" 
+      },
+    }));
+
+    setCurrentPlayer(null);
+    setGameState("lobby");
+    toast({
+          title: "New Game Created!",
+          description: `Game ID: ${gameResponse.data?._id}`,
+        })
+      }, [toast]);
+  // ({
+  //   players: [],
+  //   settings: {
+  //     roundTime: 60,
+  //     roundsPerGame: 3,
+  //     wordDifficulty: "medium",
+  //     allowCustomWords: false,
+  //     maxPlayers: 8,
+  //     category: "all",
+  //   },
+  //   gameId: Math.random().toString(36).substr(2, 9),
+  // })
+
+  // Game data (only created when game starts)
+  const [gamePlayData, setGamePlayData] = useState<GamePlayData | null>(null)
+  const [winner, setWinner] = useState<Player | undefined>(undefined)
+
+  const [customWords, setCustomWords] = useState<string[]>([])
+
+
+ const generateWordHint = useCallback((word: string, difficulty: GameData["settings"]["wordDifficulty"]) => {
+    const hintLevels = {
+      easy: 0.7, // Show 70% of letters
+      medium: 0.5, // Show 50% of letters
+      hard: 0.3, // Show 30% of letters
+    }
+
+    const showRatio = hintLevels[difficulty]
+    const lettersToShow = Math.ceil(word.length * showRatio)
+    const positions = new Set<number>()
+
+    // Always show first and last letter
+    positions.add(0)
+    if (word.length > 1) positions.add(word.length - 1)
+
+    // Add random positions
+    while (positions.size < lettersToShow && positions.size < word.length) {
+      positions.add(Math.floor(Math.random() * word.length))
+    }
+
+    return word
+      .split("")
+      .map((letter, index) => (positions.has(index) ? letter : "_"))
+      .join(" ")
+  }, [])
+
+  
+  const getRandomWord = useCallback(
+    async (category: string | undefined) => {
+      if (customWords.length > 0) {
+        return customWords[Math.floor(Math.random() * customWords.length)];
+      } else {
+        const apiService = new ApiService("http://localhost:5000");
+        const wordsResponse = await apiService.getWords({
+          category: category || "all",
+          difficulty: "medium"
+        });
+
+        if (wordsResponse.data && wordsResponse.data.length > 0) {
+          return wordsResponse.data[Math.floor(Math.random() * wordsResponse.data.length)];
+        } else {
+          console.error("No words found for the selected category or difficulty");
+          return "DRAWING"; // Fallback word
+        }
+      }
+    },
+    [customWords]
+  );
+
+  const handleJoinGame= useCallback(async(
+    playerName: string,
+    isHost: false,
+    roomCode?: string,
+    user:User
+  )=>{
+    if(!playerName?.trim()){
+       toast({
+        title: "Invalid Player Name",
+        description: "Please enter a valid player name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try{
+        const randomAvatar= AVATARS[Math.floor(Math.random()*AVATARS.length)];
+
+        const newPlayer: Player = {
+                userId: user.id,
+                username: playerName,
+                score: 0,
+                isReady: isHost,
+                isHost,
+                avatar: randomAvatar,
+                correctGuesses: 0,
+                drawings: 0,
+                joinedAt: new Date().toISOString(),
+              };
+
+        if(isHost){
+          
+        }
+        }
+    catch(err){
+
+    }
+  });
+
+}
+
+
+
+
+"use client"
+
+import { useState, useCallback, useEffect, useRef, useMemo } from "react"
+import { Toaster } from "@/components/ui/toaster"
+import LobbyScreen from "@/components/lobby-screen"
+import GameScreen from "@/components/game-screen"
+import GameOverScreen from "@/components/game-over-screen"
+import Navigation from "@/components/navigation"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/auth-context"
 import ApiService from "@/lib/api"
 import type {
   Player,
@@ -34,7 +362,7 @@ export interface LobbyData {
   gameId: string | null
   roomCode: string
   status?: "waiting" | "playing" | "completed"
-}
+}L
 
 // Game play data interface
 export interface GamePlayData {
