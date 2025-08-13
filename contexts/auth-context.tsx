@@ -78,6 +78,9 @@ export function AuthProvider({children}: {children: ReactNode}){
         else if(authData.status== 200 && authData.data){
           setUser(authData.data.user);
           localStorage.setItem("user", JSON.stringify(authData.data.user));
+          localStorage.setItem("auth_token", authData.data.token);
+          alert("the user token is defined as the");
+          alert(JSON.stringify(authData.data.token));
           toast({title: "User Logged In successfully"});
           return true;
         }
@@ -113,7 +116,7 @@ export function AuthProvider({children}: {children: ReactNode}){
           else if(authData.status== 201 && authData.data){
             toast({"title": "User Registered Successfully"});
             setUser(authData.data?.user);
-            localStorage.setItem("auth_token", JSON.stringify(authData.data.token));
+            localStorage.setItem("auth_token", authData.data.token);
             localStorage.setItem("user", JSON.stringify(authData.data.user));
             return true;
           }

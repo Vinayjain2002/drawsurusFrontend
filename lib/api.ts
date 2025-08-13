@@ -92,6 +92,15 @@ export interface createRoomInterface{
   settings: GameSettings | null
 }
 
+export interface roundDetails{
+  roundNumber: number,
+  word: string,
+  drawerId: string,
+  startTime: string,
+  endTime?: string,
+  duration: number
+}
+
 export interface RoomListResponse{
   status?: number;
   success: boolean;
@@ -291,7 +300,6 @@ class ApiService{
         const response = await this.request<User>('/auth/profile',{
             method: 'GET'
         });
-    
         return {
           status: response.status,
           success: response.success,
@@ -571,6 +579,20 @@ class ApiService{
           error: response.error
         }
       }
+
+      async updateRoomDetails({gameId, roundDetails}: {gameId: string, roundDetails: roundDetails}): Promise<AuthResponse>{
+          const response= await this.request(`/update/round/${gameId}`, {
+            method: "POST"
+          });
+          return {
+            status: response.status,
+            success: response.success,
+            message: response.message,
+            data: null,
+            error: response.error
+          }
+      }
+    
 
       async updateRoomSettings(roomData: Room): Promise<SingleRoomResponse>{
         const response= await this.request<Room>(`/room/settings/${roomData._id}`, {

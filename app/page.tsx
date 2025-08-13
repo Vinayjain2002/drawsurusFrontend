@@ -9,7 +9,7 @@ import Navigation from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
-import ApiService, { SingleGameResponse } from "@/lib/api"
+import ApiService, { roundDetails, SingleGameResponse } from "@/lib/api"
 import type {
   Player,
   Room,
@@ -24,11 +24,11 @@ import type {
   User
 } from "@/utils/types/game"
 import { allowedNodeEnvironmentFlags } from "process"
-import { User } from "lucide-react"
 
 export type GameState = "lobby" | "game" | "gameOver"
 
 export interface LobbyData {
+  roomId: string | null
   players: Player[]
   settings: GameSettings
   gameId: string | null
@@ -66,60 +66,58 @@ export default function DrawsurusGame(){
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [LobbyData, setLobbyData]= useState<LobbyData>(null as any);
 
-  const createGuestPlayer = useCallback(
-    async (username: string, isHost: boolean, enterpriseTag?: string) => {
-      const apiService = new ApiService("http://localhost:5000");
+  // const createGuestPlayer = useCallback(
+  //   async (username: string, isHost: boolean, enterpriseTag?: string) => {
+  //     const apiService = new ApiService("http://localhost:5000");
       
-      const guestUserResponse = await apiService.createGuestUser({
-        userName: username,
-        enterpriseTag: enterpriseTag || "drawsurus"
-      });
+  //     const guestUserResponse = await apiService.createGuestUser({
+  //       userName: username,
+  //       enterpriseTag: enterpriseTag || "drawsurus"
+  //     });
 
-      if (guestUserResponse.status === 201 && guestUserResponse.data) {
-        alert("Guest User Created Successfully");
+  //     if (guestUserResponse.status === 201 && guestUserResponse.data) {
+  //       alert("Guest User Created Successfully");
 
-        const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+  //       const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
 
-        const guestPlayer: Player = {
-          userId: guestUserResponse.data.id,
-          username: username || "Guest Player",
-          score: 0,
-          isReady: true,
-          isHost: isHost || false,
-          avatar: randomAvatar,
-          correctGuesses: 0,
-          drawings: 0,
-          joinedAt: new Date().toISOString(),
-        };
+  //       const guestPlayer: Player = {
+  //         userId: guestUserResponse.data.id,
+  //         username: username || "Guest Player",
+  //         score: 0,
+  //         isReady: true,
+  //         isHost: isHost || false,
+  //         avatar: randomAvatar,
+  //         correctGuesses: 0,
+  //         drawings: 0,
+  //         joinedAt: new Date().toISOString(),
+  //       };
 
-        setCurrentPlayer(guestPlayer);
-        setLobbyData((prev) => ({
-          ...prev,
-          players: [...prev.players, guestPlayer],
-        }));
-      } else {
-        alert("Failed to create guest user. Please try again later.");
-      }
-    },[]
-  );
+  //       setCurrentPlayer(guestPlayer);
+  //       setLobbyData((prev) => ({
+  //         ...prev,
+  //         players: [...prev.players, guestPlayer],
+  //       }));
+  //     } else {
+  //       alert("Failed to create guest user. Please try again later.");
+  //     }
+  //   },[]
+  // );
 
-  useEffect(() => {
-    refreshUserDetails();
-
-    // Check for guest mode from localStorage
-    const guestMode = localStorage.getItem("guestMode");
-    if (guestMode === "true" && !currentPlayer && !hasJoinedRef.current) {
-      hasJoinedRef.current = true;
-      setIsGuestMode(true);
-      createGuestPlayer(guestUsername, true, "drawsurus"); // Create guest player
-      // handleJoinGame("Guest Player", true);
-      localStorage.removeItem("guestMode"); // Clear the flag
-    } else if (user && !currentPlayer && !hasJoinedRef.current) {
-      hasJoinedRef.current = true;
-      const playerName = user.userName;
-      // handleJoinGame(playerName, true); // Auto-create game as host
-    }
-  }, [user, currentPlayer]);
+  // useEffect(() => {
+  //   // Check for guest mode from localStorage
+  //   const guestMode = localStorage.getItem("guestMode");
+  //   if (guestMode === "true" && !currentPlayer && !hasJoinedRef.current) {
+  //     hasJoinedRef.current = true;
+  //     setIsGuestMode(true);
+  //     createGuestPlayer(guestUsername, true, "drawsurus"); // Create guest player
+  //     // handleJoinGame("Guest Player", true);
+  //     localStorage.removeItem("guestMode"); // Clear the flag
+  //   } else if (user && !currentPlayer && !hasJoinedRef.current) {
+  //     hasJoinedRef.current = true;
+  //     const playerName = user.userName;
+  //     // handleJoinGame(playerName, true); // Auto-create game as host
+  //   }
+  // }, [user, currentPlayer]);
 
   // Function to refresh user details from server
   const refreshUserDetails = useCallback(async () => {
@@ -127,8 +125,22 @@ export default function DrawsurusGame(){
     if (token) {
       try {
         const apiService = new ApiService("http://localhost:5000")
-        const userData = await apiService.getCurrentUser()
-        console.log("User details refreshed:", userData);
+        const userData = await apiService.getCurrentUser();
+        if(userData.status== 200 && userData.data){
+          // setting the state of the Player details as the logged In
+          const playerDetails: Player= {
+            userId: userData.data?.id,
+            username: userData.data.userName,
+            isHost: false,
+            isReady: false,
+            joinedAt: Date.now().toString(),
+            score: 0,
+            correctGuesses: 0,
+            drawings: 0
+          };
+          setCurrentPlayer(playerDetails);
+          setGameState("lobby");
+        }
         return userData
       } catch (error) {
         console.error("Failed to refresh user details:", error)
@@ -137,83 +149,87 @@ export default function DrawsurusGame(){
     }
   }, [])
 
-  const createNewGame= useCallback(async()=>{
-      const apiService = new ApiService("http://localhost:5000");
-    const roomRequest: Room= {
-      hostId: currentPlayer?.userId || "",
-      maxPlayers: 8,
-      players: currentPlayer ? [currentPlayer] : [],
-      status: "waiting",
-      createdAt: new Date().toISOString(),
-      settings: {
-        roundTime: 60,
-        roundsPerGame: 3,
-        wordDifficulty: "medium",
-        allowCustomWords: false,
-        maxPlayers: 8,
-        category: "all",
-      },
-      enterpriseTag: "drawsurus",
-      updatedAt: new Date().toISOString(),
-    }
+  useEffect(() => {
+    refreshUserDetails();
+  }, [refreshUserDetails]);
 
-    const roomResponse = await apiService.createRoom(roomRequest);
-    if(roomResponse.status== 201 && roomResponse.data){
-      // so the room is created Successfully
-      const newRoom: Room = roomResponse.data;
-      console.log("New Room Created:", newRoom);
-      alert(newRoom.roomCode);
-    }
+  // const createNewGame= useCallback(async()=>{
+  //     const apiService = new ApiService("http://localhost:5000");
+  //   const roomRequest: Room= {
+  //     hostId: currentPlayer?.userId || "",
+  //     maxPlayers: 8,
+  //     players: currentPlayer ? [currentPlayer] : [],
+  //     status: "waiting",
+  //     createdAt: new Date().toISOString(),
+  //     settings: {
+  //       roundTime: 60,
+  //       roundsPerGame: 3,
+  //       wordDifficulty: "medium",
+  //       allowCustomWords: false,
+  //       maxPlayers: 8,
+  //       category: "all",
+  //     },
+  //     enterpriseTag: "drawsurus",
+  //     updatedAt: new Date().toISOString(),
+  //   }
+
+  //   const roomResponse = await apiService.createRoom(roomRequest);
+  //   if(roomResponse.status== 201 && roomResponse.data){
+  //     // so the room is created Successfully
+  //     const newRoom: Room = roomResponse.data;
+  //     console.log("New Room Created:", newRoom);
+  //     alert(newRoom.roomCode);
+  //   }
     
-    const gameRequest: Game= {
-      roomId: roomResponse.data?._id || "",
-      rounds: [],
-      gameStartedAt: Date.now().toString(),
-      gameEndedAt: null,
-      status: "waiting",
-      finalScores: [],
-      settings: {
-        roundTime: 60,
-        roundsPerGame: 3,
-        wordDifficulty: "medium",
-        allowCustomWords: false,
-        maxPlayers: 8,
-        category: "alls" 
-      },
-      enterpriseTag: "drawsurus",
-      createdAt: Date.now.toString(),
-      updatedAt: Date.now.toString()
-    }
-    const gameResponse= await apiService.createGame(
-      gameRequest
-    );
-    if(gameResponse.status && gameResponse.data){
-      const newGameData: Game= gameResponse.data;
-        console.log("New Game Created Successfully:", newGameData);
-      alert(newGameData._id);
-    }
+  //   const gameRequest: Game= {
+  //     roomId: roomResponse.data?._id || "",
+  //     rounds: [],
+  //     gameStartedAt: Date.now().toString(),
+  //     gameEndedAt: null,
+  //     status: "waiting",
+  //     finalScores: [],
+  //     settings: {
+  //       roundTime: 60,
+  //       roundsPerGame: 3,
+  //       wordDifficulty: "medium",
+  //       allowCustomWords: false,
+  //       maxPlayers: 8,
+  //       category: "alls" 
+  //     },
+  //     enterpriseTag: "drawsurus",
+  //     createdAt: Date.now.toString(),
+  //     updatedAt: Date.now.toString()
+  //   }
+  //   const gameResponse= await apiService.createGame(
+  //     gameRequest
+  //   );
+  //   if(gameResponse.status && gameResponse.data){
+  //     const newGameData: Game= gameResponse.data;
+  //       console.log("New Game Created Successfully:", newGameData);
+  //     alert(newGameData._id);
+  //   }
 
-    setLobbyData((prev)=> ({
-      ...prev,
-      gameId: gameResponse.data?._id || "",
-      players: [],
-      settings: {
-         roundTime: 60,
-        roundsPerGame: 3,
-        wordDifficulty: "medium",
-        allowCustomWords: false,
-        maxPlayers: 8,
-        category: "alls" 
-      },
-    }));
+  //   setLobbyData((prev)=> ({
+  //     ...prev,
+  //     gameId: gameResponse.data?._id || "",
+  //     players: [],
+  //     settings: {
+  //        roundTime: 60,
+  //       roundsPerGame: 3,
+  //       wordDifficulty: "medium",
+  //       allowCustomWords: false,
+  //       maxPlayers: 8,
+  //       category: "alls" 
+  //     },
+  //   }));
 
-    setCurrentPlayer(null);
-    setGameState("lobby");
-    toast({
-          title: "New Game Created!",
-          description: `Game ID: ${gameResponse.data?._id}`,
-        })
-      }, [toast]);
+  //   setCurrentPlayer(null);
+  //   setGameState("lobby");
+  //   toast({
+  //         title: "New Game Created!",
+  //         description: `Game ID: ${gameResponse.data?._id}`,
+  //       })
+  //     }, [toast]);
   // ({
   //   players: [],
   //   settings: {
@@ -229,7 +245,7 @@ export default function DrawsurusGame(){
 
   // Game data (only created when game starts)
   const [gamePlayData, setGamePlayData] = useState<GamePlayData | null>(null)
-  const [winner, setWinner] = useState<Player | undefined>(undefined)
+  // const [winner, setWinner] = useState<Player | undefined>(undefined)
 
   const [customWords, setCustomWords] = useState<string[]>([])
 
@@ -261,34 +277,36 @@ export default function DrawsurusGame(){
   }, [])
 
   
-  const getRandomWord = useCallback(
-    async (category: string | undefined) => {
-      if (customWords.length > 0) {
-        return customWords[Math.floor(Math.random() * customWords.length)];
-      } else {
-        const apiService = new ApiService("http://localhost:5000");
-        const wordsResponse = await apiService.getWords({
-          category: category || "all",
-          difficulty: "medium"
-        });
+  // const getRandomWord = useCallback(
+  //   async (category: string | undefined) => {
+  //     if (customWords.length > 0) {
+  //       return customWords[Math.floor(Math.random() * customWords.length)];
+  //     } else {
+  //       const apiService = new ApiService("http://localhost:5000");
+  //       const wordsResponse = await apiService.getWords({
+  //         category: category || "all",
+  //         difficulty: "medium"
+  //       });
 
-        if (wordsResponse.data && wordsResponse.data.length > 0) {
-          const picked=  wordsResponse.data[Math.floor(Math.random() * wordsResponse.data.length)];
-          return typeof picked=="string"? picked : picked.word;
-        } else {
-          console.error("No words found for the selected category or difficulty");
-          return "DRAWING"; // Fallback word
-        }
-      }
-    },
-    [customWords]
-  );
+  //       if (wordsResponse.data && wordsResponse.data.length > 0) {
+  //         const picked=  wordsResponse.data[Math.floor(Math.random() * wordsResponse.data.length)];
+  //         return typeof picked=="string"? picked : picked.word;
+  //       } else {
+  //         console.error("No words found for the selected category or difficulty");
+  //         return "DRAWING"; // Fallback word
+  //       }
+  //     }
+  //   },
+  //   [customWords]
+  // );
 
+  // this one function is used for the purpose of the creation of the Room or joining the users in a already created room
   const handleJoinGame= useCallback(async(
     playerName: string,
     isHost: boolean= false,
+    playerDetails: Player,
     roomCode?: string
-    )=>{
+  )=>{
     if(!playerName?.trim()){
        toast({
         title: "Invalid Player Name",
@@ -300,9 +318,11 @@ export default function DrawsurusGame(){
 
     try{
         const randomAvatar= AVATARS[Math.floor(Math.random()*AVATARS.length)];
-
+      if(currentPlayer== null){
+        return;
+      }
         const newPlayer: Player = {
-                userId: "2",
+                userId: playerDetails.userId,
                 username: playerName,
                 score: 0,
                 isReady: isHost,
@@ -312,21 +332,14 @@ export default function DrawsurusGame(){
                 drawings: 0,
                 joinedAt: new Date().toISOString(),
               };
-
+          
         if(isHost){
           const roomData: Room= {
             hostId: newPlayer.userId,
-            maxPlayers: 8,
-            players: [newPlayer],
+            maxPlayers: LobbyData.players.length,
+            players: LobbyData.players,
             status: "waiting",
-            settings: {
-              roundTime: 60,
-              roundsPerGame: 3,
-              wordDifficulty: "medium",
-              allowCustomWords: false,
-              maxPlayers: 8,
-              category: "all"
-            },
+            settings: LobbyData.settings,
             enterpriseTag: "drawsurus",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -334,20 +347,24 @@ export default function DrawsurusGame(){
 
           const roomResponse= await apiService.createRoom(roomData);
           if(roomResponse.status== 201 && roomResponse.data && roomResponse.data._id && roomResponse.data.roomCode){
-            setCurrentPlayer(newPlayer);
+            // setCurrentPlayer(newPlayer);
             setLobbyData({
+              roomId: roomResponse.data._id,
               players: [newPlayer],
               settings: roomResponse.data.settings,
               gameId: roomResponse.data._id,
               roomCode: roomResponse.data.roomCode,
               status: "waiting"
-            });
+          });
+          }
+          else{
+            alert("Getting error in creating a room");
           }
         }
         else if(roomCode){
-            const joinResponse= await apiService.joinRoom(roomCode ?? "");
+            const joinResponse= await apiService.joinRoom(roomCode);
             if(joinResponse.status == 200 && joinResponse.data){
-              setCurrentPlayer(newPlayer);
+              // setCurrentPlayer(newPlayer);
               setLobbyData((prev)=>({
                 ...prev,
                 players: [...prev.players, newPlayer],
@@ -376,6 +393,7 @@ export default function DrawsurusGame(){
 
   const handleStartGame= useCallback(async()=>{
       if(!LobbyData.gameId || !LobbyData.roomCode || !currentPlayer?.isHost){
+        alert("We could not start the game Without details");
         return;
       }
 
@@ -389,47 +407,66 @@ export default function DrawsurusGame(){
             });
             return;
           }
+          var wordsResponse;
+          if(customWords.length== 0){
+               wordsResponse=  await apiService.getWords({
+                  category: "all",
+                   difficulty: "medium"
+               });      
+              if(wordsResponse.status && wordsResponse.data){
+                  // setCustomWords(wordsResponse.data);
+              }
 
-          const wordsResponse= await apiService.getWords({
-            category: "all",
-            difficulty: "medium"
-          });
-
-          if(wordsResponse.status != 200 && !wordsResponse.data?.length){
-            toast({
-              title: "Error",
-              description: "Failed to Fetch words. PLease try again",
-              variant: "destructive"
-            });
+              if(wordsResponse.status != 200 && !wordsResponse.data?.length){
+              toast({
+                  title: "Error",
+                  description: "Failed to Fetch words. PLease try again",
+                    variant: "destructive"
+                });
             return;
           }
-
+        }
+         
           const firstDrawer= readyPlayer[0];
          const gameRequest: Game = {
+            // room ID  need to be changedd here
             roomId: LobbyData.gameId,
             rounds: [],
             status: "playing",
             settings: LobbyData.settings,
             enterpriseTag: "drawsurus",
             gameEndedAt: null,
+            createdAt: Date.now().toString(),
             gameStartedAt: Date.now().toString(),
             updatedAt: Date.now().toString(), // ✅ make sure to call Date.now()
             finalScores: []
           };
           const gameResponse= await apiService.createGame(gameRequest);
 
-          if(gameResponse.status == 201 && gameResponse.data && wordsResponse.data){
-            const wordData= wordsResponse.data[0];
-            const wordHint= generateWordHint(wordData.word, LobbyData.settings.wordDifficulty);
+          if(gameResponse.status == 201 && gameResponse.data && gameResponse.data._id){
+            const wordData= customWords[0];
+            const wordHint= generateWordHint(wordData, LobbyData.settings.wordDifficulty);
             setGamePlayData({
               currentRound: 1,
               currentDrawer: firstDrawer.userId,
-              currentWord: wordData.word,
+              currentWord: wordData,
               wordHint,
               timeLeft: LobbyData.settings.roundTime,
               roundStartTime: Date.now()
             });
 
+            // need to update the data of the Game in the Game
+            const roomDetails: roundDetails = {
+                roundNumber: 1,
+                word: wordData,
+                drawerId: firstDrawer.userId,
+                startTime: Date.now().toString(),
+                duration: LobbyData.settings.roundTime
+            }
+            const updateGameResponse= await apiService.updateRoomDetails({gameId: gameResponse.data._id, roundDetails: roomDetails});
+            if(updateGameResponse){
+              alert("Game Updated Successfully");
+            }
             setGameState("game");
             toast({
               title: "Game Started",
@@ -454,54 +491,55 @@ export default function DrawsurusGame(){
       }
   }, [apiService, LobbyData, currentPlayer, generateWordHint, toast]);
 
-  const handleGameEnd= useCallback((winner: Player)=>{
-    setWinner(winner);
-    setGameState("gameOver");
-       toast({
-        title: "🎉 Game Over!",
-        description: `${winner.username} wins with ${winner.score} points!`,
-      })
-  }, [toast]);
+  // const handleGameEnd= useCallback((winner: Player)=>{
+  //   setWinner(winner);
+  //   setGameState("gameOver");
+  //      toast({
+  //       title: "🎉 Game Over!",
+  //       description: `${winner.username} wins with ${winner.score} points!`,
+  //     })
+  // }, [toast]);
 
 
-   const handlePlayAgain = useCallback(() => {
-    setGamePlayData(null)
-    setWinner(undefined)
-    setLobbyData((prev) => ({
-      ...prev,
-      gameId: Math.random().toString(36).substr(2, 9),
-      players: prev.players.map((p) => ({
-        ...p,
-        score: 0,
-        isReady: p.isHost, // Only host is ready by default
-        correctGuesses: 0,
-        isDrawing: false,
-      })),
-    }))
-    setGameState("lobby")
-  }, [])
+  //  const handlePlayAgain = useCallback(() => {
+  //   setGamePlayData(null)
+  //   setWinner(undefined)
+  //   setLobbyData((prev) => ({
+  //     ...prev,
+  //     gameId: Math.random().toString(36).substr(2, 9),
+  //     players: prev.players.map((p) => ({
+  //       ...p,
+  //       score: 0,
+  //       isReady: p.isHost, // Only host is ready by default
+  //       correctGuesses: 0,
+  //       isDrawing: false,
+  //     })),
+  //   }))
+  //   setGameState("lobby")
+  // }, [])
 
 
-  const handleBackToLobby= useCallback(()=>{
-    setGameState("lobby");
-    setCurrentPlayer(null);
-    setGamePlayData(null);
-    setWinner(undefined);
-     setLobbyData((prev) => ({
-      ...prev,
-      players: [],
-      gameId: Math.random().toString(36).substr(2, 9),
-    }))
-  }, []);
+  // const handleBackToLobby= useCallback(()=>{
+  //   setGameState("lobby");
+  //   setCurrentPlayer(null);
+  //   setGamePlayData(null);
+  //   setWinner(undefined);
+  //    setLobbyData((prev) => ({
+  //     ...prev,
+  //     players: [],
+  //     gameId: Math.random().toString(36).substr(2, 9),
+  //   }))
+  // }, []);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
-    )
-  }
+  // if (isLoading) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+  //       <div className="text-white text-xl">Loading...</div>
+  //     </div>
+  //   )
+  // }
 
+  // this is the First Screen Which we get when the normal Users Join
     if (!user && !isGuestMode) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
@@ -521,7 +559,7 @@ export default function DrawsurusGame(){
               onClick={() => {
                 setIsGuestMode(true);
                 localStorage.setItem("guestMode", "true");
-                createGuestPlayer("vinay Jain", false);
+                // createGuestPlayer("vinay Jain", false);
                 // handleJoinGame()
               }}
               className="bg-green-600 hover:bg-green-700 text-white"
@@ -565,7 +603,7 @@ return (
           )}
         </header>
 
-        {gameState === "lobby" && (
+         {gameState === "lobby" && currentPlayer && (
           <LobbyScreen
             gameData={LobbyData}
             currentPlayer={currentPlayer}
@@ -590,9 +628,9 @@ return (
               }
             }}
           />
-        )}
+        )} 
 
-        {gameState === "game" && currentPlayer && gamePlayData && (
+        {/* {gameState === "game" && currentPlayer && gamePlayData && (
           <GameScreen
             gameData={{ ...LobbyData, ...gamePlayData, winner }}
             currentPlayer={currentPlayer}
@@ -627,7 +665,7 @@ return (
             onPlayAgain={handlePlayAgain} 
             onBackToLobby={handleBackToLobby} 
           />
-        )}
+        )} */}
 
       </div>
       <Toaster />

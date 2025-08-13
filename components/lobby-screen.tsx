@@ -1,6 +1,5 @@
 "use client"
 
-
 import { useAuth } from "@/contexts/auth-context"
 import { useState} from "react"
 import { Button } from "@/components/ui/button"
@@ -13,17 +12,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Users, Settings, Crown, Check, X, UserX, Copy, Share2, Gamepad2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import type { Player, GameSettings } from "@/utils/types/game"
+import type { Player, GameSettings, User } from "@/utils/types/game"
 import KeywordUpload from "@/components/keyword-upload"
 import { LobbyData } from "@/app/page"
 
 
 interface LobbyScreenProps {
   gameData: LobbyData
-  currentPlayer: Player | null
+  currentPlayer: Player
   customWords: string[]
   onUpdateCustomWords: (words: string[]) => void
-  onJoinGame: (playerName: string, isHost?: boolean) => void
+  onJoinGame: (playerName: string, isHost: boolean, playerDetails: Player, roomCode?: string) => void
   onStartGame: () => void
   onUpdateSettings: (settings: GameSettings) => void
   onToggleReady: (playerId: string) => void
@@ -42,13 +41,14 @@ export default function LobbyScreen({
   onToggleReady,
   onKickPlayer}: LobbyScreenProps){
   // Show loading state while auth is initializing
-  const [playerName, setPlayerName]= useState("")
+  const [playerName, setPlayerName]= useState(currentPlayer.username);
   const [gameCode]= useState(gameData?.gameId?.toUpperCase());
   const {toast}= useToast();
   
   const handleJoin= ()=>{
     if(playerName.trim()){
-      onJoinGame(playerName.trim(), gameData.players.length== 0);
+      // need to check the room Code and other things
+      onJoinGame(playerName.trim(), gameData.players.length== 0, currentPlayer, "");
     }
   }
 
@@ -63,7 +63,7 @@ export default function LobbyScreen({
   const handleCreateGame=()=>{
     if(playerName.trim()){
       //As we are creating a new game, we set the host to true
-      onJoinGame(playerName.trim(), true);
+      onJoinGame(playerName.trim(), true, currentPlayer, "");
     }
   }
 

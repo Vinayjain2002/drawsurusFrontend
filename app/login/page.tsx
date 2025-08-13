@@ -40,6 +40,8 @@ export default function LoginPage() {
           title: "Login Successful!",
           description: "Welcome back to Drawsurus!",
         })
+        
+        // We need to set the details of the users also
         router.push("/");
       }
       else{
