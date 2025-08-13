@@ -43,7 +43,7 @@ export default function LobbyScreen({
   onKickPlayer}: LobbyScreenProps){
   // Show loading state while auth is initializing
   const [playerName, setPlayerName]= useState("")
-  const [gameCode]= useState(gameData.gameId?.toUpperCase());
+  const [gameCode]= useState(gameData?.gameId?.toUpperCase());
   const {toast}= useToast();
   
   const handleJoin= ()=>{

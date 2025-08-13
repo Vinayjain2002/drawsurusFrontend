@@ -273,8 +273,7 @@ export default function DrawsurusGame(){
         });
 
         if (wordsResponse.data && wordsResponse.data.length > 0) {
-          const picked=  wordsResponse.data[Math.floor(Math.random() * wordsResponse.data.length)];
-          return typeof picked=="string"? picked : picked.word;
+          return wordsResponse.data[Math.floor(Math.random() * wordsResponse.data.length)];
         } else {
           console.error("No words found for the selected category or difficulty");
           return "DRAWING"; // Fallback word
@@ -287,8 +286,9 @@ export default function DrawsurusGame(){
   const handleJoinGame= useCallback(async(
     playerName: string,
     isHost: boolean= false,
-    roomCode?: string
-    )=>{
+    roomCode?: string,
+    user :User
+  )=>{
     if(!playerName?.trim()){
        toast({
         title: "Invalid Player Name",
@@ -302,7 +302,7 @@ export default function DrawsurusGame(){
         const randomAvatar= AVATARS[Math.floor(Math.random()*AVATARS.length)];
 
         const newPlayer: Player = {
-                userId: "2",
+                userId: user.id,
                 username: playerName,
                 score: 0,
                 isReady: isHost,
@@ -375,7 +375,7 @@ export default function DrawsurusGame(){
 
 
   const handleStartGame= useCallback(async()=>{
-      if(!LobbyData.gameId || !LobbyData.roomCode || !currentPlayer?.isHost){
+      if(!LobbyData.roomCode || !currentPlayer?.isHost){
         return;
       }
 
@@ -405,18 +405,13 @@ export default function DrawsurusGame(){
           }
 
           const firstDrawer= readyPlayer[0];
-         const gameRequest: Game = {
+          const gameResponse= await apiService.createGame({
             roomId: LobbyData.gameId,
             rounds: [],
             status: "playing",
             settings: LobbyData.settings,
-            enterpriseTag: "drawsurus",
-            gameEndedAt: null,
-            gameStartedAt: Date.now().toString(),
-            updatedAt: Date.now().toString(), // ✅ make sure to call Date.now()
-            finalScores: []
-          };
-          const gameResponse= await apiService.createGame(gameRequest);
+            enterpriseTag: "drawsurus"
+          });
 
           if(gameResponse.status == 201 && gameResponse.data && wordsResponse.data){
             const wordData= wordsResponse.data[0];
@@ -571,7 +566,7 @@ return (
             currentPlayer={currentPlayer}
             customWords={customWords}
             onUpdateCustomWords={setCustomWords}
-            onJoinGame={handleJoinGame}
+            // onJoinGame={handleJoinGame}
             onStartGame={handleStartGame}
             onUpdateSettings={(settings) => setLobbyData((prev) => ({ ...prev, settings }))}
             onToggleReady={(playerId) => {
@@ -594,12 +589,12 @@ return (
 
         {gameState === "game" && currentPlayer && gamePlayData && (
           <GameScreen
-            gameData={{ ...LobbyData, ...gamePlayData, winner }}
+            gameData={{ ...lobbyData, ...gamePlayData, winner }}
             currentPlayer={currentPlayer}
             onGameEnd={handleGameEnd}
             onUpdateGameData={(updater) => {
               // Create a combined game data for the updater function
-              const combinedGameData: GameData = { ...LobbyData, ...gamePlayData!, winner }
+              const combinedGameData: GameData = { ...lobbyData, ...gamePlayData!, winner }
 
               // Apply the update
               const updatedGameData = updater(combinedGameData)
@@ -623,7 +618,7 @@ return (
 /*
         {gameState === "gameOver" && (
           <GameOverScreen 
-            gameData={{ ...LobbyData, ...gamePlayData!, winner }} 
+            gameData={{ ...lobbyData, ...gamePlayData!, winner }} 
             onPlayAgain={handlePlayAgain} 
             onBackToLobby={handleBackToLobby} 
           />

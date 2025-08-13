@@ -35,7 +35,7 @@ interface GameScreenProps {
   currentPlayer: Player
   onGameEnd: (winner: Player) => void
   onUpdateGameData: (updater: (prev: GameData) => GameData) => void
-  getRandomWord: (category: GameData["settings"]["category"]) => string
+  getRandomWord: (category: GameData["settings"]["category"]) => Promise<string>
   generateWordHint: (word: string, difficulty: GameData["settings"]["wordDifficulty"]) => string
 }
 
@@ -107,13 +107,13 @@ export default function GameScreen({
         }
 
         // it means that the no of the rounds is not enough so we need to recreate the Window for the next Round
-        setTimeout(()=>{
+        setTimeout(async ()=>{
           const currentDrawerIndex= gameData.players.findIndex((p)=> p.userId === gameData.currentDrawer);
           const nextDrawerIndex= (currentDrawerIndex + 1)% gameData.players.length;
           const nextDrawer= gameData.players[nextDrawerIndex];
 
           const isNewRound= nextDrawerIndex === 0;
-          const newWord= getRandomWord(gameData.settings.category);
+          const newWord= await getRandomWord(gameData.settings.category);
           const wordHint= generateWordHint(newWord, gameData.settings.wordDifficulty);
 
           onUpdateGameData((prev)=>({

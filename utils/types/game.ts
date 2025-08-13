@@ -38,7 +38,7 @@ export interface Drawing {
 // Chat/Guess/System Message
 export type ChatMessageType = "chat" | "guess" | "system"
 export interface ChatMessage {
-  roomId: string
+  roomId?: string
   userId: string
   username: string
   message: string
@@ -112,7 +112,7 @@ export interface Room {
 
 // Game
 export interface Game {
-  _id: string
+  _id?: string
   roomId: string
   rounds: Round[]
   gameStartedAt: string
