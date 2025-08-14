@@ -321,7 +321,7 @@ export default function LobbyScreen({
 
                     <div>
                       <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                        Time per Round: {gameData.settings.roundTime}s
+                        Time per Round: {gameData.settings.roundTime}
                       </label>
                       <Slider
                         value={[gameData.settings.roundTime]}

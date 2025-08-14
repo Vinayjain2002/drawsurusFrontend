@@ -51,7 +51,6 @@ export default function VideoMeeting({
       }
     } catch (error) {
       console.error("Error accessing media devices:", error)
-      alert("Could not access camera/microphone. Please check permissions.")
     }
   }
 

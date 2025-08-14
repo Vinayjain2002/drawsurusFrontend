@@ -23,7 +23,7 @@ interface AuthContextType {
 
 
 const AuthContext= createContext<AuthContextType | undefined>(undefined);
-const apiService = new ApiService("http://localhost:5000");
+const apiService = new ApiService(process.env.NEXT_PUBLIC_API_URL?? "http://localhost:5000");
 
 // custom hook for handling user Authentication
 export function AuthProvider({children}: {children: ReactNode}){
@@ -105,12 +105,10 @@ export function AuthProvider({children}: {children: ReactNode}){
           const authData: AuthResponse= await apiService.signup(signUpRequest);
           if(authData.status == 400){
             toast({title: "Invalid Credentials Provided"});
-            alert("Invalid Credentials provided");
             return false;
           }
           else if(authData.status == 409){
             toast({title: "Username or Email already Exists"});
-            alert("Username or Email already exists");
             return false;
           }
           else if(authData.status== 201 && authData.data){

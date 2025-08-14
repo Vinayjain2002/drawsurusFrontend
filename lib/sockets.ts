@@ -20,7 +20,7 @@ export function useGameSocket(
             return;
         }
 
-        socketRef.current= io("http://localhost:5000", {
+        socketRef.current= io(process.env.NEXT_PUBLIC_API_URL, {
             query: {roomCode}
         });
 

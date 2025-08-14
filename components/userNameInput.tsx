@@ -11,7 +11,6 @@ interface UserNameInputProps{
 export default function UserNameInput({
     setUserName
 }: UserNameInputProps){
-    alert("Username for Lobby Screen is called");   
     const [playerName, setPlayerName]= useState("");
     return (
          <div className="max-w-lg mx-auto">

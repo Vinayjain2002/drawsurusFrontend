@@ -1,7 +1,6 @@
 import {  CompleteUserData, Game, GameSettings, Room, Stroke, User, UserStats, Word } from "@/utils/types/game"
 import { error } from "console";
 
-const API_BASE_URL= "http://localhost:5000"
 
 export interface ApiResponse<T = any>{
     status: number,
@@ -169,7 +168,7 @@ class ApiService{
     private token: string | null = null
 
     constructor(baseURL: string){
-        this.baseURL="http://localhost:5000"
+        this.baseURL=process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
         if(typeof window !== 'undefined'){
             this.token= localStorage.getItem("auth_token");
         }
@@ -245,8 +244,6 @@ class ApiService{
     }
     
       async signup(userData: SignUpRequest): Promise<AuthResponse> {
-        alert("the data are defined as the");
-        alert(userData);
         const response = await this.request<RegisterData>('/auth/register', {
           method: 'POST',
           body: JSON.stringify(userData),

@@ -55,7 +55,7 @@ export interface GameData extends LobbyData, GamePlayData {
 const AVATARS = ["🦕", "🎨", "🌟", "🎯", "🚀", "🎪", "🎭", "🎨", "🦄", "🌈", "⭐", "🎊"]
 
 export default function DrawsurusGame(){
-  const apiService = useMemo(() => new ApiService('http://localhost:5000'), []);
+  const apiService = useMemo(() => new ApiService(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"), []);
   
   const guestUsername = "Guest Player " + Math.random().toString(36).substr(2, 5);
    const [gameState, setGameState] = useState<GameState>("lobby")
@@ -141,7 +141,7 @@ export default function DrawsurusGame(){
     const token = localStorage.getItem("auth_token")
     if (token) {
       try {
-        const apiService = new ApiService("http://localhost:5000")
+        const apiService = new ApiService(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000")
         const userData = await apiService.getCurrentUser();
         if(userData.status== 200 && userData.data?._id){
        
@@ -167,17 +167,17 @@ export default function DrawsurusGame(){
     }
   }, [])
 
-  useEffect(()=>{
-    alert(showJoinScreen);
-  }, [showJoinScreen]);
+  // useEffect(()=>{
+  //   alert(showJoinScreen);
+  // }, [showJoinScreen]);
 
   useEffect(() => {
     refreshUserDetails();
   }, [refreshUserDetails]);
 
-  useEffect(()=>{
-    alert("Custom Word are created");
-  }, [customWords]);
+  // useEffect(()=>{
+  //   alert("Custom Word are created");
+  // }, [customWords]);
 
   
 
@@ -213,7 +213,7 @@ export default function DrawsurusGame(){
       if (customWords.length > 0) {
         return customWords[Math.floor(Math.random() * customWords.length)];
       } else {
-        const apiService = new ApiService("http://localhost:5000");
+        const apiService = new ApiService(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000");
         const wordsResponse = await apiService.getWords({
           category: category || "all",
           difficulty: "medium"
@@ -330,7 +330,6 @@ export default function DrawsurusGame(){
 
 
   const handleStartGame= useCallback(async()=>{
-    alert(customWords);
       if(!LobbyData.roomId || !LobbyData.roomCode || !currentPlayer?.isHost){
         return;
       }
@@ -402,12 +401,10 @@ export default function DrawsurusGame(){
                 startTime: Date.now().toString(),
                 duration: LobbyData.settings.roundTime
             }
-            alert("the room Details are defined as the");
-            alert(roundDetails);
 
             const updateGameResponse= await apiService.updateRoomDetails({gameId: gameResponse.data._id, roundDetails: roundDetails});
             if(updateGameResponse){
-              alert("Game Updated Successfully");
+
             }
             setGameState("game");
             toast({
@@ -435,7 +432,6 @@ export default function DrawsurusGame(){
 
   const handleGameEnd= useCallback((winner: Player)=>{
     setWinner(winner);
-    alert("game end is called");
     setGameState("gameOver");
        toast({
         title: "🎉 Game Over!",
