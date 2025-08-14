@@ -300,6 +300,7 @@ class ApiService{
         const response = await this.request<User>('/auth/profile',{
             method: 'GET'
         });
+        console.log("get user details are defined as the", response);
         return {
           status: response.status,
           success: response.success,
@@ -581,8 +582,9 @@ class ApiService{
       }
 
       async updateRoomDetails({gameId, roundDetails}: {gameId: string, roundDetails: roundDetails}): Promise<AuthResponse>{
-          const response= await this.request(`/update/round/${gameId}`, {
-            method: "POST"
+          const response= await this.request(`/game/update/round/${gameId}`, {
+            method: "POST",
+            body: JSON.stringify(roundDetails)
           });
           return {
             status: response.status,

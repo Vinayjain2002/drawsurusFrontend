@@ -13,11 +13,13 @@ interface KeywordUploadProps {
 }
 
 export default function KeywordUpload({ customWords, onUpdateWords }: KeywordUploadProps) {
+  console.log("On  Key Word Screen", customWords);
   const [newWord, setNewWord] = useState("")
   const [uploadText, setUploadText] = useState("")
 
   const handleAddWord = () => {
     if (newWord.trim()) {
+      console.log("the new Custom Word added is defined as the", newWord);
       onUpdateWords([...customWords, newWord.trim().toUpperCase()])
       setNewWord("")
     }

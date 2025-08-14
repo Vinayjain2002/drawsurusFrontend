@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-context"
-import { useState} from "react"
+import { useEffect, useState} from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,6 +27,8 @@ interface LobbyScreenProps {
   onUpdateSettings: (settings: GameSettings) => void
   onToggleReady: (playerId: string) => void
   onKickPlayer: (playerId: string) => void
+  showJoinScreen: boolean,
+  setShowJoinScreen:  React.Dispatch<React.SetStateAction<boolean>>
 }
 
 
@@ -39,16 +41,27 @@ export default function LobbyScreen({
   onStartGame,
   onUpdateSettings,
   onToggleReady,
-  onKickPlayer}: LobbyScreenProps){
+  onKickPlayer,
+  showJoinScreen,
+  setShowJoinScreen
+}: LobbyScreenProps){
+
+  console.log(gameData.settings);
   // Show loading state while auth is initializing
   const [playerName, setPlayerName]= useState(currentPlayer.username);
-  const [gameCode]= useState(gameData?.gameId?.toUpperCase());
+  const [gameCode, setGameCode]= useState("");
+  useEffect(()=>{
+    setGameCode(gameData.roomCode);
+  }, [gameData]);
+
   const {toast}= useToast();
   
   const handleJoin= ()=>{
     if(playerName.trim()){
       // need to check the room Code and other things
-      onJoinGame(playerName.trim(), gameData.players.length== 0, currentPlayer, "");
+      setShowJoinScreen(false);
+      console.log("the no of the players is defined as the ", gameData.players.length);
+      onJoinGame(playerName.trim(), gameData.players.length==1 , currentPlayer, "");
     }
   }
 
@@ -62,7 +75,7 @@ export default function LobbyScreen({
 
   const handleCreateGame=()=>{
     if(playerName.trim()){
-      //As we are creating a new game, we set the host to true
+      console.log("the handle Create game is called");
       onJoinGame(playerName.trim(), true, currentPlayer, "");
     }
   }
@@ -81,7 +94,7 @@ export default function LobbyScreen({
 
     const canStartGame = currentPlayer?.isHost && gameData.players.length > 0
 
-    if(!currentPlayer){
+    if(showJoinScreen){
        return (
           <div className="max-w-lg mx-auto">
             <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-0">
@@ -145,7 +158,7 @@ export default function LobbyScreen({
         <TabsList className="grid w-full grid-cols-3 bg-white/20 backdrop-blur-sm">
           <TabsTrigger value="players" className="data-[state=active]:bg-white/90">
             <Users className="w-4 h-4 mr-2" />
-            Players ({gameData.players.length})
+            Players ({gameData?.players.length})
           </TabsTrigger>
           <TabsTrigger value="settings" className="data-[state=active]:bg-white/90">
             <Settings className="w-4 h-4 mr-2" />

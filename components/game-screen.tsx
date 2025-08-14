@@ -61,7 +61,6 @@ export default function GameScreen({
   const currentDrawer= gameData.players.find((p)=> p.userId === gameData.currentDrawer);
 
   const currentDrawerName= currentDrawer?.username || "Unknown Drawer";
-
   // Timer with the Paused state
   useEffect(()=>{
     if(gameData.timeLeft > 0 && !isPaused){
@@ -287,7 +286,7 @@ export default function GameScreen({
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Badge variant="outline" className="text-lg px-4 py-2 bg-purple-100 border-purple-300">
-                Round {gameData.currentRound}%{gameData.settings.roundsPerGame}
+                Round {gameData.currentRound}/{gameData.settings.roundsPerGame}
               </Badge>
               <div className="flex items-center gap-2">
                 <div className="text-xl">{currentDrawer?.avatar}</div>

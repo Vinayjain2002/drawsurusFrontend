@@ -181,7 +181,7 @@ export interface Word {
 }
 
 export interface User{
-  id: string
+  _id: string
   userName: string
   email: string
   passwordHash: string
