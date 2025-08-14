@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react"
@@ -21,6 +21,13 @@ export default function LoginPage() {
   const { toast } = useToast()
   const { login } = useAuth()
   
+  useEffect(()=>{
+      // getting the details of the users 
+      const userDetails= localStorage.getItem("user");
+      if(userDetails){
+        router.push("/");
+      }
+  },[]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true);
@@ -35,20 +42,35 @@ export default function LoginPage() {
       }
       // const loginResponse= await login({ email: email,password:password })
       const loginResponse= await login({email: email, password: password});
-      if(loginResponse == true){
-        toast({
-          title: "Login Successful!",
-          description: "Welcome back to Drawsurus!",
-        })
-        
-        // We need to set the details of the users also
-        router.push("/");
-      }
-      else{
-        
-      }
- 
-
+       if(loginResponse.status== 400){
+          toast({title: "Invalid Input Format"});
+          return;
+        }
+        else if(loginResponse.status== 401){
+              console.log("401 error block hit");
+          toast({
+            title: "Login failed",
+            description: "Unable to fetch user details",
+            duration: 5000
+          });            
+          return;
+        }
+        else if(loginResponse.status== 200 && loginResponse.data){
+            localStorage.setItem("user", JSON.stringify(loginResponse.data.user));
+            localStorage.setItem("auth_token", loginResponse.data.token);
+            toast({title: "User Logged In successfully"});
+            router.push("/");
+            
+              return;
+        }
+        else if(loginResponse.status== 500){
+           toast({"title": "Internal Server Error"});
+           return;
+        }
+        else{
+            toast({"title": "Unknown Error Occured"});
+            return;
+        }
     } catch (error: any) {
       toast({
         title: "Login Failed",

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Mail, Lock, User, CheckCircle } from "lucide-react"
@@ -28,6 +28,13 @@ export default function SignupPage() {
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
+
+  useEffect(()=>{
+      const userDetails= localStorage.getItem("user");
+      if(userDetails){
+        router.push("/");
+      }
+  }, []);
 
   const validatePassword = (password: string) => {
     const minLength = password.length >= 8
@@ -81,20 +88,25 @@ export default function SignupPage() {
         email: formData.email,
         password: formData.password
       });
-      if(response== true){
-        toast({
-          title: "Account Created!",
-          description: "Welcome to Drawsurus! Your account has been created successfully.",
-        })
-        
-        router.push("/")
-      }
-      else{
-        toast({
-          title: "Account Created Failed"
-        });
-      }
-   
+      if(response.status == 400){
+            toast({title: "Invalid Credentials Provided"});
+            return;
+          }
+          else if(response.status == 409){
+            toast({title: "Username or Email already Exists"});
+            return;
+          }
+          else if(response.status== 201 && response.data){
+            toast({"title": "User Registered Successfully"});
+            localStorage.setItem("auth_token", response.data.token);
+            localStorage.setItem("user", JSON.stringify(response.data.user));
+            router.push("/")
+            return;
+          }
+          else {
+              toast({"title": "Internal Server Error"});
+              return;
+          }        
     } catch (error) {
       toast({
         title: "Signup Failed",

@@ -15,9 +15,9 @@ export interface LoginRequest{
 
 interface AuthContextType {
   user: User | null;
-  login: (userData: { email: string; password: string }) => Promise<boolean>;
+  login: (userData: { email: string; password: string }) => Promise<LoginResponse>;
   logout: () => Promise<void>;
-  signup: (user: {userName: string,email: string, password: string}) => Promise<boolean>;
+  signup: (user: {userName: string,email: string, password: string}) => Promise<AuthResponse>;
   isLoading: boolean;
 }
 
@@ -61,41 +61,20 @@ export function AuthProvider({children}: {children: ReactNode}){
   }, []); 
 
 
-  const login= async(userData: {email: string, password: string}):Promise<boolean>=>{
+  const login= async(userData: {email: string, password: string}):Promise<LoginResponse>=>{
     const loginRequest: LoginRequest = {
           email: userData.email,
           password: userData.password
         };
         const authData: LoginResponse = await apiService.login(loginRequest);
-        if(authData.status== 400){
-          toast({title: "Invalid Input Format"});
-          return false;
-        }
-        else if(authData.status== 401){
-          toast({title: "Unable to fetch user details"});
-          return false;
-        }
-        else if(authData.status== 200 && authData.data){
+        if(authData.data?.user){
           setUser(authData.data.user);
-          localStorage.setItem("user", JSON.stringify(authData.data.user));
-          localStorage.setItem("auth_token", authData.data.token);
-          alert("the user token is defined as the");
-          alert(JSON.stringify(authData.data.token));
-          toast({title: "User Logged In successfully"});
-          return true;
         }
-        else if(authData.status== 500){
-          toast({"title": "Internal Server Error"});
-          return false;
-        }
-        else{
-          toast({"title": "Unknown Error Occured"});
-          return false;
-        }
+        return authData ?? null;
       }
 
 
-      const signup= async({userName, email,password}: {userName: string, email: string, password: string}): Promise<boolean>=>{
+      const signup= async({userName, email,password}: {userName: string, email: string, password: string}): Promise<AuthResponse>=>{
           const signUpRequest: SignUpRequest={
               userName: userName,
               email: email,
@@ -103,31 +82,17 @@ export function AuthProvider({children}: {children: ReactNode}){
               enterpriseTag: "sparsh"
           };
           const authData: AuthResponse= await apiService.signup(signUpRequest);
-          if(authData.status == 400){
-            toast({title: "Invalid Credentials Provided"});
-            return false;
+          if(authData.data?.user){
+            setUser(authData.data.user);
           }
-          else if(authData.status == 409){
-            toast({title: "Username or Email already Exists"});
-            return false;
-          }
-          else if(authData.status== 201 && authData.data){
-            toast({"title": "User Registered Successfully"});
-            setUser(authData.data?.user);
-            localStorage.setItem("auth_token", authData.data.token);
-            localStorage.setItem("user", JSON.stringify(authData.data.user));
-            return true;
-          }
-          else {
-              toast({"title": "Internal Server Error"});
-              return false;
-          }
+          return authData;
       }
 
       const logout= async()=>{
         const authData: boolean= await apiService.logout();
         setUser(null);
         localStorage.removeItem("user");
+        localStorage.removeItem("auth_token");
       }
 
       return (
