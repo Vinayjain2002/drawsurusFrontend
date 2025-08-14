@@ -30,6 +30,7 @@ export default function SignupPage() {
   }
 
   useEffect(()=>{
+      localStorage.removeItem("guestMode");
       const userDetails= localStorage.getItem("user");
       if(userDetails){
         router.push("/");

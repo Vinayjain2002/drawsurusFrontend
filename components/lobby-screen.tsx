@@ -200,7 +200,7 @@ export default function LobbyScreen({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Players in Lobby ({gameData.players.length}/{gameData.settings.maxPlayers})
+                Players in Lobby ({gameData.players.length}/{gameData.settings.maxPlayers ?? 8})
               </CardTitle>
             </CardHeader>
             <CardContent>

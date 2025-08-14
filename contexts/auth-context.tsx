@@ -93,6 +93,7 @@ export function AuthProvider({children}: {children: ReactNode}){
         setUser(null);
         localStorage.removeItem("user");
         localStorage.removeItem("auth_token");
+        localStorage.removeItem("guestMode");
       }
 
       return (

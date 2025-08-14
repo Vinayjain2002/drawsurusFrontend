@@ -80,7 +80,7 @@ export interface GameSettings {
   roundsPerGame: number
   wordDifficulty: "easy" | "medium" | "hard"
   allowCustomWords?: boolean
-  maxPlayers?: number
+  maxPlayers: number
   category?: string
 }
 

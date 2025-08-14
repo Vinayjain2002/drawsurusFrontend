@@ -23,6 +23,7 @@ export default function LoginPage() {
   
   useEffect(()=>{
       // getting the details of the users 
+      localStorage.removeItem("guestMode");
       const userDetails= localStorage.getItem("user");
       if(userDetails){
         router.push("/");

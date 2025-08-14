@@ -75,9 +75,9 @@ export default function DrawsurusGame(){
   players:[],
   settings: {
      roundTime: 30,
-  roundsPerGame: 3,
-  wordDifficulty: "medium",
-  maxPlayers: 8
+    roundsPerGame: 3,
+    wordDifficulty: "medium",
+    maxPlayers: 8
   },
   gameId: null,
   roomCode: ""
