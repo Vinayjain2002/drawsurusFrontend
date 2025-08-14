@@ -167,6 +167,10 @@ export default function DrawsurusGame(){
     }
   }, [])
 
+  useEffect(()=>{
+    alert(showJoinScreen);
+  }, [showJoinScreen]);
+
   useEffect(() => {
     refreshUserDetails();
   }, [refreshUserDetails]);
@@ -174,98 +178,8 @@ export default function DrawsurusGame(){
   useEffect(()=>{
     alert("Custom Word are created");
   }, [customWords]);
-  // const createNewGame= useCallback(async()=>{
-  //     const apiService = new ApiService("http://localhost:5000");
-  //   const roomRequest: Room= {
-  //     hostId: currentPlayer?.userId || "",
-  //     maxPlayers: 8,
-  //     players: currentPlayer ? [currentPlayer] : [],
-  //     status: "waiting",
-  //     createdAt: new Date().toISOString(),
-  //     settings: {
-  //       roundTime: 60,
-  //       roundsPerGame: 3,
-  //       wordDifficulty: "medium",
-  //       allowCustomWords: false,
-  //       maxPlayers: 8,
-  //       category: "all",
-  //     },
-  //     enterpriseTag: "drawsurus",
-  //     updatedAt: new Date().toISOString(),
-  //   }
 
-  //   const roomResponse = await apiService.createRoom(roomRequest);
-  //   if(roomResponse.status== 201 && roomResponse.data){
-  //     // so the room is created Successfully
-  //     const newRoom: Room = roomResponse.data;
-  //     console.log("New Room Created:", newRoom);
-  //     alert(newRoom.roomCode);
-  //   }
-    
-  //   const gameRequest: Game= {
-  //     roomId: roomResponse.data?._id || "",
-  //     rounds: [],
-  //     gameStartedAt: Date.now().toString(),
-  //     gameEndedAt: null,
-  //     status: "waiting",
-  //     finalScores: [],
-  //     settings: {
-  //       roundTime: 60,
-  //       roundsPerGame: 3,
-  //       wordDifficulty: "medium",
-  //       allowCustomWords: false,
-  //       maxPlayers: 8,
-  //       category: "alls" 
-  //     },
-  //     enterpriseTag: "drawsurus",
-  //     createdAt: Date.now.toString(),
-  //     updatedAt: Date.now.toString()
-  //   }
-  //   const gameResponse= await apiService.createGame(
-  //     gameRequest
-  //   );
-  //   if(gameResponse.status && gameResponse.data){
-  //     const newGameData: Game= gameResponse.data;
-  //       console.log("New Game Created Successfully:", newGameData);
-  //     alert(newGameData._id);
-  //   }
-
-  //   setLobbyData((prev)=> ({
-  //     ...prev,
-  //     gameId: gameResponse.data?._id || "",
-  //     players: [],
-  //     settings: {
-  //        roundTime: 60,
-  //       roundsPerGame: 3,
-  //       wordDifficulty: "medium",
-  //       allowCustomWords: false,
-  //       maxPlayers: 8,
-  //       category: "alls" 
-  //     },
-  //   }));
-
-  //   setCurrentPlayer(null);
-  //   setGameState("lobby");
-  //   toast({
-  //         title: "New Game Created!",
-  //         description: `Game ID: ${gameResponse.data?._id}`,
-  //       })
-  //     }, [toast]);
-  // ({
-  //   players: [],
-  //   settings: {
-  //     roundTime: 60,
-  //     roundsPerGame: 3,
-  //     wordDifficulty: "medium",
-  //     allowCustomWords: false,
-  //     maxPlayers: 8,
-  //     category: "all",
-  //   },
-  //   gameId: Math.random().toString(36).substr(2, 9),
-  // })
-
-  // Game data (only created when game starts)
-
+  
 
  const generateWordHint = useCallback((word: string, difficulty: GameData["settings"]["wordDifficulty"]) => {
     const hintLevels = {
@@ -325,14 +239,14 @@ export default function DrawsurusGame(){
     roomCode?: string
   )=>{
     console.log("the data of the user is defined as the", playerName,isHost);
-    // if(!playerName?.trim()){
-    //    toast({
-    //     title: "Invalid Player Name",
-    //     description: "Please enter a valid player name.",
-    //     variant: "destructive",
-    //   });
-    //   return;
-    // }
+    if(!playerName?.trim()){
+       toast({
+        title: "Invalid Player Name",
+        description: "Please enter a valid player name.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try{
         const randomAvatar= AVATARS[Math.floor(Math.random()*AVATARS.length)];
@@ -488,6 +402,9 @@ export default function DrawsurusGame(){
                 startTime: Date.now().toString(),
                 duration: LobbyData.settings.roundTime
             }
+            alert("the room Details are defined as the");
+            alert(roundDetails);
+
             const updateGameResponse= await apiService.updateRoomDetails({gameId: gameResponse.data._id, roundDetails: roundDetails});
             if(updateGameResponse){
               alert("Game Updated Successfully");
@@ -527,43 +444,43 @@ export default function DrawsurusGame(){
   }, [toast]);
 
 
-  //  const handlePlayAgain = useCallback(() => {
-  //   setGamePlayData(null)
-  //   setWinner(undefined)
-  //   setLobbyData((prev) => ({
-  //     ...prev,
-  //     gameId: Math.random().toString(36).substr(2, 9),
-  //     players: prev.players.map((p) => ({
-  //       ...p,
-  //       score: 0,
-  //       isReady: p.isHost, // Only host is ready by default
-  //       correctGuesses: 0,
-  //       isDrawing: false,
-  //     })),
-  //   }))
-  //   setGameState("lobby")
-  // }, [])
+   const handlePlayAgain = useCallback(() => {
+    setGamePlayData(null)
+    setWinner(undefined)
+    setLobbyData((prev) => ({
+      ...prev,
+      status: "waiting",
+      players: prev.players.map((p) => ({
+        ...p,
+        score: 0,
+        isReady: p.isHost, // Only host is ready by default
+        correctGuesses: 0,
+        isDrawing: false,
+      })),
+    }))
+    setGameState("lobby")
+  }, []);
 
+  const handleBackToLobby= useCallback(()=>{
+    setGameState("lobby");
+    setShowJoinScreen(true);
+    setCurrentPlayer(null);
+    setGamePlayData(null);
+    setWinner(undefined);
+     setLobbyData((prev) => ({
+      ...prev,
+      players: [],
+      gameId: Math.random().toString(36).substr(2, 9),
+    }))
+  }, []);
 
-  // const handleBackToLobby= useCallback(()=>{
-  //   setGameState("lobby");
-  //   setCurrentPlayer(null);
-  //   setGamePlayData(null);
-  //   setWinner(undefined);
-  //    setLobbyData((prev) => ({
-  //     ...prev,
-  //     players: [],
-  //     gameId: Math.random().toString(36).substr(2, 9),
-  //   }))
-  // }, []);
-
-  // if (isLoading) {
-  //   return (
-  //     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
-  //       <div className="text-white text-xl">Loading...</div>
-  //     </div>
-  //   )
-  // }
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    )
+  }
 
   // this is the First Screen Which we get when the normal Users Join
     if (!user && !isGuestMode) {
@@ -689,14 +606,13 @@ return (
           />
         )}
 
-        {/* {gameState === "gameOver" && (
+        {gameState === "gameOver" && (
           <GameOverScreen 
             gameData={{ ...LobbyData, ...gamePlayData!, winner }} 
             onPlayAgain={handlePlayAgain} 
             onBackToLobby={handleBackToLobby} 
           />
-        )} */} 
-
+        )} 
       </div>
       <Toaster />
     </div>
