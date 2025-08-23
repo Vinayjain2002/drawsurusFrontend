@@ -182,14 +182,14 @@ export interface Word {
 }
 
 export interface User{
-  _id: string
+  _id?: string
   userName: string
   email: string
   passwordHash: string
   avatar: string
   createdAt: string
-  isAdmin: true
-  lastOnline: Date
+  isAdmin: boolean
+  lastOnline?: Date
   currentRoomId: string
   isOnline: boolean
   totalGamesPlayed: number

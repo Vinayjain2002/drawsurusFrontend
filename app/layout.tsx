@@ -3,6 +3,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 import { AuthProvider } from '@/contexts/auth-context'
+import { ReduxProvider } from '@/store/providers'
 
 export const metadata:Metadata={
       title: 'Drawsurus- The ultimate Drawing and Guessing Game',
@@ -27,9 +28,11 @@ export default function RootLayout({
         `}</style>
         </head>
         <body>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+         <ReduxProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+         </ReduxProvider>
         </body>
       </html>
     )
