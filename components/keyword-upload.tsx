@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Upload, XCircle } from "lucide-react"
+import { Difficulty } from "@/utils/types/game"
 
 interface KeywordUploadProps {
   customWords: string[]
-  onUpdateWords: (words: string[]) => void
+  onUpdateWords: (words: string[], difficulty: Difficulty) => void
 }
 
 export default function KeywordUpload({ customWords, onUpdateWords }: KeywordUploadProps) {
@@ -20,14 +21,14 @@ export default function KeywordUpload({ customWords, onUpdateWords }: KeywordUpl
   const handleAddWord = () => {
     if (newWord.trim()) {
       console.log("the new Custom Word added is defined as the", newWord);
-      onUpdateWords([...customWords, newWord.trim().toUpperCase()])
+      onUpdateWords([...customWords, newWord.trim().toUpperCase()], "medium")
       setNewWord("")
     }
   }
 
   const handleRemoveWord = useCallback(
     (wordToRemove: string) => {
-      onUpdateWords(customWords.filter((word) => word !== wordToRemove))
+      onUpdateWords(customWords.filter((word) => word !== wordToRemove), "medium")
     },
     [customWords, onUpdateWords],
   )
@@ -38,7 +39,7 @@ export default function KeywordUpload({ customWords, onUpdateWords }: KeywordUpl
       .map((word) => word.trim().toUpperCase())
       .filter(Boolean) // Remove empty strings
 
-    onUpdateWords([...customWords, ...words])
+    onUpdateWords([...customWords, ...words], "medium")
     setUploadText("")
   }
 

@@ -21,7 +21,8 @@ import type {
   FinalScore,
   UserStats,
   Word,
-  User
+  User,
+  Difficulty
 } from "@/utils/types/game"
 import { allowedNodeEnvironmentFlags } from "process"
 
@@ -205,7 +206,32 @@ export default function DrawsurusGame(){
       .split("")
       .map((letter, index) => (positions.has(index) ? letter : "_"))
       .join(" ")
-  }, [])
+  }, []);
+
+  const handleUpdateCustomWords = async (words: string[], difficulty: Difficulty ) => {
+    // 1. Update state immediately for instant UI feedback
+    setCustomWords(words);
+
+    // 2. Save to DB
+    try {
+  const formattedWords = words.map(word => ({
+    word: word.trim(),
+    category: "custom",           // default category
+    difficulty: difficulty,       // passed in as argument
+    isActive: true                // default value
+  }));
+
+      const res = await apiService.createWords(formattedWords); // create this API method
+      if (res.success) {
+        toast({ title: "Custom words saved!" });
+      } else {
+        toast({ title: "Failed to save custom words", variant: "destructive" });
+      }
+    } catch (err) {
+      console.error("Error saving custom words:", err);
+      toast({ title: "Server error", variant: "destructive" });
+    }
+  };
 
   
   const getRandomWord = useCallback(
@@ -285,13 +311,16 @@ export default function DrawsurusGame(){
           if(roomResponse.status== 201 && roomResponse.data && roomResponse.data._id && roomResponse.data.roomCode){
             // setCurrentPlayer(newPlayer);
             console.log("setitng the details of the lobby");
+            const maxPlayers= roomResponse.data.maxPlayers;
+            roomResponse.data.settings.maxPlayers= maxPlayers;
             setLobbyData({
               roomId: roomResponse.data?._id,
               players: [newPlayer],
               settings: roomResponse.data.settings,
               gameId: null,
               roomCode: roomResponse.data?.roomCode,
-              status: "waiting"
+              status: "waiting",
+              
           });
           setCurrentPlayer(newPlayer);
          }
@@ -544,12 +573,13 @@ return (
           )}
         </header>
 
-         {gameState == "lobby" && currentPlayer  && (
+         {
+         gameState == "lobby" && currentPlayer  && (
           <LobbyScreen
             gameData={LobbyData}
             currentPlayer={currentPlayer}
             customWords={customWords}
-            onUpdateCustomWords={setCustomWords}
+            onUpdateCustomWords={handleUpdateCustomWords}
             onJoinGame={handleJoinGame}
             onStartGame={handleStartGame}
             onUpdateSettings={(settings) => setLobbyData((prev) => ({ ...prev, settings }))}

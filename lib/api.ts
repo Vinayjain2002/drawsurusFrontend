@@ -522,6 +522,18 @@ class ApiService{
         };
       }
 
+      async createWords(data: Word[]): Promise<MultipleWordResponse>{
+        const response= await this.request<Word[]>(`/word/many`,{
+          method: "POST"
+        });
+        return {
+          success: response.success,
+          status: response.status,
+          message: response.message,
+          data: response.data || null,
+          error:response.error
+        }
+      }
       async getWords({category, difficulty}: {category: string, difficulty: string}): Promise<MultipleWordResponse>{
           const response= await this.request<Word[]>(`/word`, {
             method: 'GET'

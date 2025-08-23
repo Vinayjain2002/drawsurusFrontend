@@ -169,6 +169,7 @@ export interface UserStats {
     monthStart: string | null
   }
 }
+  export type Difficulty = 'easy' | 'medium' | "hard";
 
 // Word
 export interface Word {
@@ -176,8 +177,8 @@ export interface Word {
   category?: string
   difficulty?: "easy" | "medium" | "hard"
   isActive?: boolean
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface User{
