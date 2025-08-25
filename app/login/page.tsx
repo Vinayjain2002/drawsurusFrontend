@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
-import { ApiResponse } from "@/lib/api"
+import { setUserDetails } from "@/store/slices/userSlice"
+import { useDispatch } from "react-redux"   // ✅ import lowercase
+import type { AppDispatch } from "@/store/store"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -20,7 +22,7 @@ export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { login } = useAuth()
-  
+  const dispatch = useDispatch<AppDispatch>()   // ✅ now defined
   useEffect(()=>{
       // getting the details of the users 
       localStorage.removeItem("guestMode");
@@ -57,11 +59,17 @@ export default function LoginPage() {
           return;
         }
         else if(loginResponse.status== 200 && loginResponse.data){
+          // updating the data using the redux
+          
             localStorage.setItem("user", JSON.stringify(loginResponse.data.user));
             localStorage.setItem("auth_token", loginResponse.data.token);
             toast({title: "User Logged In successfully"});
             router.push("/");
-            
+                dispatch(setUserDetails({
+                userName: loginResponse.data.user.userName,
+                email: loginResponse.data.user.email,
+              }));
+
               return;
         }
         else if(loginResponse.status== 500){
@@ -82,8 +90,7 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   }
-
-  return (
+ return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">

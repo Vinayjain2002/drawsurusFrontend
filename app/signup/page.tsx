@@ -10,6 +10,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
+import { UseDispatch } from "react-redux"
+import type { AppDispatch } from "@/store/store"
+import { useDispatch } from "react-redux"
+import { setUserDetails } from "@/store/slices/userSlice"
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -18,6 +22,7 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
   })
+  const dispatch= useDispatch<AppDispatch>();
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -98,7 +103,14 @@ export default function SignupPage() {
             return;
           }
           else if(response.status== 201 && response.data){
+
             toast({"title": "User Registered Successfully"});
+            dispatch(setUserDetails(
+              {
+                userName:response.data.user.userName,
+                email: response.data.user.email
+              }
+            ))
             localStorage.setItem("auth_token", response.data.token);
             localStorage.setItem("user", JSON.stringify(response.data.user));
             router.push("/")

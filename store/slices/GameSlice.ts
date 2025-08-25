@@ -1,118 +1,171 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Game, Round, FinalScore, GameSettings, CorrectGuess } from "@/utils/types/game";
+import { Game, Round, FinalScore, GameSettings, CorrectGuess, Player } from "@/utils/types/game";
 
- 
+export type GameState = "lobby" | "game" | "gameOver";
 
-const initialState: Game = {
-  _id: undefined,
-  roomId: "",
-  rounds: [],
-  gameStartedAt: new Date().toISOString(),
-  gameEndedAt: null,
-  status: "waiting",
+export interface LobbyData {
+  roomId: string | null;
+  players: Player[];
+  settings: GameSettings;
+  gameId: string | null;
+  roomCode: string;
+  status?: "waiting" | "playing" | "completed";
+}
+
+export interface GamePlayData {
+  currentRound: number;
+  currentDrawer: string;
+  currentWord: string;
+  wordHint: string;
+  timeLeft: number;
+  roundStartTime: number;
+  isPaused?: boolean;
+  showHint?: boolean;
+}
+
+export interface GameData extends LobbyData, GamePlayData {
+  winner?: Player;
+}
+
+const initialState: GameData = {
+  roomId: null,
+  players: [],
   settings: {
-   roundTime: 60,
-   roundsPerGame: 8,
-   wordDifficulty: "medium",
-   allowCustomWords: false,
-   maxPlayers: 8,
-  } as GameSettings,
-  finalScores: [],
-  enterpriseTag: "",
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+    roundTime: 30,
+    roundsPerGame: 3,
+    wordDifficulty: "medium",
+    maxPlayers: 8
+  },
+  gameId: null,
+  roomCode: "",
+  status: "waiting",
+  currentRound: 1,
+  currentDrawer: "",
+  currentWord: "",
+  wordHint: "",
+  timeLeft: 30,
+  roundStartTime: Date.now(),
+  isPaused: false,
+  showHint: false,
+  winner: undefined
 };
 
 const gameSlice = createSlice({
   name: "game",
   initialState,
   reducers: {
-    /** Replace game with server state */
-    setGame: (_, action: PayloadAction<Game>) => action.payload,
-
-    /** Start a new game */
-    startGame: (state) => {
-      state.status = "playing";
-      state.gameStartedAt = new Date().toISOString();
-      state.updatedAt = new Date().toISOString();
+    /** Set lobby data */
+    setLobbyData: (state, action: PayloadAction<LobbyData>) => {
+      Object.assign(state, action.payload);
     },
 
-    /** End game */
-    endGame: (state) => {
-      state.status = "completed";
-      state.gameEndedAt = new Date().toISOString();
-      state.updatedAt = new Date().toISOString();
+    /** Set game play data */
+    setGamePlayData: (state, action: PayloadAction<GamePlayData>) => {
+      Object.assign(state, action.payload);
     },
 
-    /** Cancel game */
-    cancelGame: (state) => {
-      state.status = "cancelled";
-      state.gameEndedAt = new Date().toISOString();
-      state.updatedAt = new Date().toISOString();
-    },
-
-    /** Add a new round */
-    addRound: (state, action: PayloadAction<Round>) => {
-      state.rounds.push(action.payload);
-      state.updatedAt = new Date().toISOString();
-    },
-
-    /** Update a round (e.g. endTime, messages, guesses) */
-    updateRound: (
-      state,
-      action: PayloadAction<{ roundNumber: number; data: Partial<Round> }>
-    ) => {
-      const round = state.rounds.find(
-        (r) => r.roundNumber === action.payload.roundNumber
-      );
-      if (round) {
-        Object.assign(round, action.payload.data);
-        state.updatedAt = new Date().toISOString();
+    /** Set current player */
+    setCurrentPlayer: (state, action: PayloadAction<Player>) => {
+      // Update or add player to the players array
+      const existingPlayerIndex = state.players.findIndex(p => p.userId === action.payload.userId);
+      if (existingPlayerIndex >= 0) {
+        state.players[existingPlayerIndex] = action.payload;
+      } else {
+        state.players.push(action.payload);
       }
     },
 
-    /** Add a correct guess to a round */
-    addCorrectGuess: (
-      state,
-      action: PayloadAction<{ roundNumber: number; guess: CorrectGuess }>
-    ) => {
-      const round = state.rounds.find(
-        (r) => r.roundNumber === action.payload.roundNumber
-      );
-      if (round) {
-        round.correctGuesses.push(action.payload.guess);
-        state.updatedAt = new Date().toISOString();
+    /** Add player to lobby */
+    addPlayer: (state, action: PayloadAction<Player>) => {
+      state.players.push(action.payload);
+    },
+
+    /** Remove player from lobby */
+    removePlayer: (state, action: PayloadAction<string>) => {
+      state.players = state.players.filter(p => p.userId !== action.payload);
+    },
+
+    /** Update player */
+    updatePlayer: (state, action: PayloadAction<{ playerId: string; updates: Partial<Player> }>) => {
+      const player = state.players.find(p => p.userId === action.payload.playerId);
+      if (player) {
+        Object.assign(player, action.payload.updates);
       }
     },
 
-    /** Set game settings */
-    setSettings: (state, action: PayloadAction<GameSettings>) => {
-      state.settings = action.payload;
-      state.updatedAt = new Date().toISOString();
+    /** Update game settings */
+    updateSettings: (state, action: PayloadAction<Partial<GameSettings>>) => {
+      state.settings = { ...state.settings, ...action.payload };
     },
 
-    /** Assign final scores */
-    setFinalScores: (state, action: PayloadAction<FinalScore[]>) => {
-      state.finalScores = action.payload;
-      state.updatedAt = new Date().toISOString();
+    /** Set game state */
+    setGameState: (state, action: PayloadAction<GameState>) => {
+      state.status = action.payload === "lobby" ? "waiting" : 
+                    action.payload === "game" ? "playing" : "completed";
     },
 
-    /** Reset whole game state */
+    /** Set winner */
+    setWinner: (state, action: PayloadAction<Player>) => {
+      state.winner = action.payload;
+    },
+
+    /** Update time left */
+    updateTimeLeft: (state, action: PayloadAction<number>) => {
+      state.timeLeft = action.payload;
+    },
+
+    /** Set current word and hint */
+    setCurrentWord: (state, action: PayloadAction<{ word: string; hint: string }>) => {
+      state.currentWord = action.payload.word;
+      state.wordHint = action.payload.hint;
+    },
+
+    /** Set current drawer */
+    setCurrentDrawer: (state, action: PayloadAction<string>) => {
+      state.currentDrawer = action.payload;
+    },
+
+    /** Toggle pause state */
+    togglePause: (state) => {
+      state.isPaused = !state.isPaused;
+    },
+
+    /** Toggle hint visibility */
+    toggleHint: (state) => {
+      state.showHint = !state.showHint;
+    },
+
+    /** Reset game state */
     resetGame: () => initialState,
+
+    /** Clear current player */
+    clearCurrentPlayer: (state) => {
+      state.players = [];
+      state.roomId = null;
+      state.gameId = null;
+      state.roomCode = "";
+      state.status = "waiting";
+    }
   },
 });
 
 export const {
-  setGame,
-  startGame,
-  endGame,
-  cancelGame,
-  addRound,
-  updateRound,
-  addCorrectGuess,
-  setSettings,
-  setFinalScores,
+  setLobbyData,
+  setGamePlayData,
+  setCurrentPlayer,
+  addPlayer,
+  removePlayer,
+  updatePlayer,
+  updateSettings,
+  setGameState,
+  setWinner,
+  updateTimeLeft,
+  setCurrentWord,
+  setCurrentDrawer,
+  togglePause,
+  toggleHint,
   resetGame,
+  clearCurrentPlayer,
 } = gameSlice.actions;
 
 export default gameSlice.reducer;

@@ -4,7 +4,7 @@ import gameReducer from "./slices/GameSlice";
 import roomReducer from "./slices/RoomSlice";
 import chatReducer from "./slices/chatSlice";
 import wordReducer from "./slices/wordSlice"; 
-import drawingReducer from "./slices/wordSlice"; 
+import drawingReducer from "./slices/Drawing"; 
 import statsReducer from "./slices/userStatsSlice"; 
 
 export const store = configureStore({
