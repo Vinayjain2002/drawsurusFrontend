@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { UseSelector, shallowEqual } from "react-redux"
 import ApiService, { roundDetails, SingleGameResponse } from "@/lib/api"
 import {
   type Player,
@@ -66,6 +65,31 @@ export interface GameData extends LobbyData, GamePlayData {
   winner?: Player
 }
 
+ export  const generateWordHint = useCallback((word: string, difficulty: GameData["settings"]["wordDifficulty"]) => {
+    const hintLevels = {
+      easy: 0.7, // Show 70% of letters
+      medium: 0.5, // Show 50% of letters
+      hard: 0.3, // Show 30% of letters
+    }
+
+    const showRatio = hintLevels[difficulty]
+    const lettersToShow = Math.ceil(word.length * showRatio)
+    const positions = new Set<number>()
+
+    // Always show first and last letter
+    positions.add(0)
+    if (word.length > 1) positions.add(word.length - 1)
+
+    // Add random positions
+    while (positions.size < lettersToShow && positions.size < word.length) {
+      positions.add(Math.floor(Math.random() * word.length))
+    }
+
+    return word
+      .split("")
+      .map((letter, index) => (positions.has(index) ? letter : "_"))
+      .join(" ")
+  }, []);
 
 export default function DrawsurusGame(){
     const router = useRouter();
@@ -80,9 +104,6 @@ export default function DrawsurusGame(){
 
     const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null)
     const [gameState, setGameState] = useState<GameState>("lobby")
-    const [gamePlayData, setGamePlayData] = useState<GamePlayData | null>(null)
-    const [winner, setWinner] = useState<Player | undefined>(undefined)
-    const [customWords, setCustomWords] = useState<string[]>([])
     const [LobbyData, setLobbyData]= useState<LobbyData>({
         roomId: null,
       players:[],
@@ -127,31 +148,7 @@ export default function DrawsurusGame(){
     }
   }, [dispatch]);
 
-   const generateWordHint = useCallback((word: string, difficulty: GameData["settings"]["wordDifficulty"]) => {
-    const hintLevels = {
-      easy: 0.7, // Show 70% of letters
-      medium: 0.5, // Show 50% of letters
-      hard: 0.3, // Show 30% of letters
-    }
 
-    const showRatio = hintLevels[difficulty]
-    const lettersToShow = Math.ceil(word.length * showRatio)
-    const positions = new Set<number>()
-
-    // Always show first and last letter
-    positions.add(0)
-    if (word.length > 1) positions.add(word.length - 1)
-
-    // Add random positions
-    while (positions.size < lettersToShow && positions.size < word.length) {
-      positions.add(Math.floor(Math.random() * word.length))
-    }
-
-    return word
-      .split("")
-      .map((letter, index) => (positions.has(index) ? letter : "_"))
-      .join(" ")
-  }, []);
 
     const handleUpdateCustomWords = async (words: string[], difficulty: Difficulty ) => {
       // 1. Update state immediately for instant UI feedback
@@ -403,7 +400,6 @@ return (
          gameState == "lobby"  && (
           <LobbyScreen
             gameData={LobbyData}
-            customWords={customWords}
             onUpdateCustomWords={handleUpdateCustomWords}
             onStartGame={handleStartGame}
             onUpdateSettings={(settings) => setLobbyData((prev) => ({ ...prev, settings }))}

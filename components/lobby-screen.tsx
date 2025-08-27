@@ -12,35 +12,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Users, Settings, Crown, Check, X, UserX, Copy, Share2, Gamepad2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { type Player, type GameSettings, type User, type Difficulty, type PlayerRootState, AVATARS, Room } from "@/utils/types/game"
+import { type Player, type GameSettings, type User, type Difficulty, type PlayerRootState, AVATARS, Room, WordRootState, Game } from "@/utils/types/game"
 import KeywordUpload from "@/components/keyword-upload"
-import { LobbyData } from "@/app/page"
+import { generateWordHint, LobbyData } from "@/app/page"
 import { useDispatch, useSelector } from "react-redux"
 import { max } from "date-fns"
-import ApiService from "@/lib/api"
+import ApiService, { roundDetails } from "@/lib/api"
 import { setShowJoinScreen, toggleJoinScreen } from "@/store/slices/uiSlices"
 import { setUserDetails } from "@/store/slices/userSlice"
 import { setPlayerDetails } from "@/store/slices/playerSlice"
+import { RootState } from "@/store/store"
+import { setCurrentDrawer, setGameState } from "@/store/slices/GameSlice"
 
 
 interface LobbyScreenProps {
   gameData: LobbyData
-  customWords: string[]
-  onUpdateCustomWords: (words: string[], difficulty: Difficulty) => void
-  onStartGame: () => void
   onUpdateSettings: (settings: GameSettings) => void
   onToggleReady: (playerId: string) => void
   onKickPlayer: (playerId: string) => void
+  updateGameState: (state: string)=> void
 }
 
 
 export default function LobbyScreen({
   gameData,
-  customWords,
- onUpdateCustomWords,
-  onStartGame,
   onUpdateSettings,
   onToggleReady,
+  updateGameState,
   onKickPlayer,
 }: LobbyScreenProps){
     const apiService = useMemo(() => new ApiService(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"), []);
@@ -50,12 +48,98 @@ export default function LobbyScreen({
   const [gameCode, setGameCode]= useState("");
   const dispatch= useDispatch();
   const showJoinScreen= useSelector((state: {ui: {showJoinScreen: boolean}})=> state.ui.showJoinScreen);
+ const players = useSelector((state:RootState) => state.game.players);
+  const roomId = useSelector((state: RootState) => state.game.roomId);
+  const settings = useSelector((state: RootState) => state.game.settings);
+  const roomCode= useSelector((state: RootState)=> state.game.roomCode);
+  const isHost= useSelector((state: RootState)=> state.player.isHost);
+const lobbyData= useSelector((state: RootState)=> state.game);
   useEffect(()=>{
     setGameCode(gameData.roomCode);
   }, [gameData]);
 
   const {toast}= useToast();
   const currentPlayer= useSelector((state: PlayerRootState)=> state.player);
+  const customWords= useSelector((state: WordRootState)=> state.word.customWords);
+  const  startGame =async ()=>{
+    // apiService.createWords(customWords);
+    console.log("Create Game is caled");
+    if(!roomId || !roomCode || !isHost){
+      toast({
+        title: "Cannot Start Game",
+        description: "You must"
+      });
+      return;
+    }
+
+    try{
+          const readyPlayer= lobbyData.players.filter(p=> p.isReady || p.isHost);
+          if(readyPlayer.length== 0){
+            toast({
+              title: "cannot start Game",
+              description: "Need at least 2 ready Players!",
+              variant: "destructive"
+            });
+            return;
+          }
+        const firstDrawer= readyPlayer[0];
+        const gameRequest: Game = {
+                      roomId: lobbyData.roomId ?? "",
+                      rounds: [],
+                      status: "playing",
+                      settings: lobbyData.settings,
+                      enterpriseTag: "drawsurus",
+                      gameEndedAt: null,
+                      createdAt: Date.now().toString(),
+                      gameStartedAt: Date.now().toString(),
+                      updatedAt: Date.now().toString(), // ✅ make sure to call Date.now()
+                      finalScores: []
+                    };
+       const gameResponse= await apiService.createGame(gameRequest);
+            if(gameResponse.status == 201 && gameResponse.data && gameResponse.data._id){
+            console.log("custom words is defined as the ",customWords);
+            const wordData= customWords[0];
+            console.log("the word data is defined as the ", wordData);
+
+            const wordHint= generateWordHint(wordData, lobbyData.settings.wordDifficulty);
+            // setGameDa({
+            //   currentRound: 1,
+            //   currentDrawer: firstDrawer.userId,
+            //   currentWord: wordData,
+            //   wordHint,
+            //   timeLeft: LobbyData.settings.roundTime,
+            //   roundStartTime: Date.now()
+            // });
+            const roundDetails: roundDetails = {
+                            roundNumber: 1,
+                            word: wordData,
+                            drawerId: firstDrawer.userId,
+                            startTime: Date.now().toString(),
+                            duration: lobbyData.settings.roundTime
+                        }
+
+            const updateGameResponse= await apiService.updateRoomDetails({gameId: gameResponse.data._id, roundDetails: roundDetails});
+            
+            toast({
+              title: "Game Started",
+              description: `${firstDrawer.username} is drawing first!`
+            })
+            dispatch(setCurrentDrawer(player.userId));
+            if(updateGameResponse){
+                updateGameState("start");
+            }
+          }
+
+    }
+    catch(err){
+      console.error("Start Game Error", err);
+           toast({
+              title: "Error",
+              description: "Failed to start game. Please try again.",
+              variant: "destructive",
+          });
+    }
+  }
   const handleJoin=async ()=>{
     if(playerName.trim()){
       // need to check the room Code and other things
@@ -88,6 +172,7 @@ export default function LobbyScreen({
           if(roomResponse.status== 201 && roomResponse.data && roomResponse.data._id && roomResponse.data.roomCode){
             const maxPlayers= roomResponse.data.maxPlayers;
               roomResponse.data.settings.maxPlayers= maxPlayers;
+              
               // setLobbyData((prev)=>({
               //   ...prev,
               //   players: [...prev.players, newPlayer],
@@ -124,7 +209,6 @@ export default function LobbyScreen({
     if(playerName.trim()){
       console.log("the handle Create game is called");
       // Going to create a new Player in the database
-      const randomAvatar= AVATARS[Math.floor(Math.random()*AVATARS.length)];
       dispatch(
         setUserDetails( {
           userName: playerName.trim(),
@@ -346,7 +430,7 @@ console.log("the show join status on the lobby Screen is defined as the", showJo
 
                 {currentPlayer.isHost && (
                   <Button
-                    onClick={onStartGame}
+                    onClick={startGame}
                     disabled={!canStartGame}
                     className="px-8 py-3 text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg"
                   >

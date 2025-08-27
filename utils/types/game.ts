@@ -262,4 +262,15 @@ export  interface guestModeState{
     player: playerState
   }
 
+  export interface WordState{
+     currentWord: Word,
+     customWords: string[],
+     selectedCategory: string | undefined,
+      selectedDifficulty: Difficulty
+  }
+
+  export interface WordRootState{
+    word: WordState
+  }
+
 export  const AVATARS = ["🦕", "🎨", "🌟", "🎯", "🚀", "🎪", "🎭", "🎨", "🦄", "🌈", "⭐", "🎊"]
