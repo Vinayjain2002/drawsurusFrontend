@@ -6,7 +6,9 @@ import chatReducer from "./slices/chatSlice";
 import wordReducer from "./slices/wordSlice"; 
 import drawingReducer from "./slices/Drawing"; 
 import statsReducer from "./slices/userStatsSlice"; 
-
+import uiReducer from './slices/uiSlices';
+import guestModeReducer from "./slices/GuestModeSlice";
+import playerReducer from "./slices/playerSlice";
 export const store = configureStore({
   reducer: {
     user: userReducer,
@@ -16,6 +18,9 @@ export const store = configureStore({
     word: wordReducer,
     drawing: drawingReducer,
     stats: statsReducer,
+    ui: uiReducer,
+    guestMode: guestModeReducer,
+    player: playerReducer
   },
 });
 

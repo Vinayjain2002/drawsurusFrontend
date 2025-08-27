@@ -5,6 +5,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { useToast } from "@/hooks/use-toast"
 import ApiService from "@/lib/api"
 import { User } from "@/utils/types/game"
+import { useDispatch } from "react-redux"
+import { setUserDetails } from "@/store/slices/userSlice"
 
 export interface LoginRequest{
   email: string,
@@ -24,7 +26,6 @@ interface AuthContextType {
 
 const AuthContext= createContext<AuthContextType | undefined>(undefined);
 const apiService = new ApiService(process.env.NEXT_PUBLIC_API_URL?? "http://localhost:5000");
-
 // custom hook for handling user Authentication
 export function AuthProvider({children}: {children: ReactNode}){
   const { toast } = useToast()
@@ -90,7 +91,6 @@ export function AuthProvider({children}: {children: ReactNode}){
 
       const logout= async()=>{
         const authData: boolean= await apiService.logout();
-        setUser(null);
         localStorage.removeItem("user");
         localStorage.removeItem("auth_token");
         localStorage.removeItem("guestMode");

@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight, Users, Trophy, Palette, Brain } from "lucide-react"
+import { useDispatch } from "react-redux"
+import { setGuestMode } from "@/store/slices/GuestModeSlice"
 
 export default function LandingPage() {
   const router = useRouter()
-
+  const dispatch= useDispatch();
   const features = [
     {
       icon: <Palette className="h-6 w-6" />,
@@ -71,7 +73,11 @@ export default function LandingPage() {
             variant="ghost" 
             size="lg" 
             className="text-white hover:bg-white/10 text-lg px-8 py-6"
-            onClick={() => router.push("/")}
+            onClick={() =>{
+              dispatch(setGuestMode({isGuestMode: true}));     
+              localStorage.setItem("guestMode", "true");
+              router.push("/");
+            }}
           >
             Continue as Guest
           </Button>

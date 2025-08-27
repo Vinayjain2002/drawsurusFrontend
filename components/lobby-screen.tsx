@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-context"
-import { useEffect, useState} from "react"
+import { useEffect, useMemo, useState} from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,56 +12,102 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Users, Settings, Crown, Check, X, UserX, Copy, Share2, Gamepad2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import type { Player, GameSettings, User, Difficulty } from "@/utils/types/game"
+import { type Player, type GameSettings, type User, type Difficulty, type PlayerRootState, AVATARS, Room } from "@/utils/types/game"
 import KeywordUpload from "@/components/keyword-upload"
 import { LobbyData } from "@/app/page"
+import { useDispatch, useSelector } from "react-redux"
+import { max } from "date-fns"
+import ApiService from "@/lib/api"
+import { setShowJoinScreen, toggleJoinScreen } from "@/store/slices/uiSlices"
+import { setUserDetails } from "@/store/slices/userSlice"
+import { setPlayerDetails } from "@/store/slices/playerSlice"
 
 
 interface LobbyScreenProps {
   gameData: LobbyData
-  currentPlayer: Player
   customWords: string[]
   onUpdateCustomWords: (words: string[], difficulty: Difficulty) => void
-  onJoinGame: (playerName: string, isHost: boolean, playerDetails: Player, roomCode?: string) => void
   onStartGame: () => void
   onUpdateSettings: (settings: GameSettings) => void
   onToggleReady: (playerId: string) => void
   onKickPlayer: (playerId: string) => void
-  showJoinScreen: boolean,
-  setShowJoinScreen:  React.Dispatch<React.SetStateAction<boolean>>
 }
 
 
 export default function LobbyScreen({
   gameData,
-  currentPlayer,
   customWords,
  onUpdateCustomWords,
-  onJoinGame,
   onStartGame,
   onUpdateSettings,
   onToggleReady,
   onKickPlayer,
-  showJoinScreen,
-  setShowJoinScreen
 }: LobbyScreenProps){
-
-  console.log(gameData.settings);
+    const apiService = useMemo(() => new ApiService(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"), []);
   // Show loading state while auth is initializing
-  const [playerName, setPlayerName]= useState(currentPlayer.username);
+    const player=useSelector((state: PlayerRootState)=> state.player);
+  const [playerName, setPlayerName]= useState(player.username);
   const [gameCode, setGameCode]= useState("");
+  const dispatch= useDispatch();
+  const showJoinScreen= useSelector((state: {ui: {showJoinScreen: boolean}})=> state.ui.showJoinScreen);
   useEffect(()=>{
     setGameCode(gameData.roomCode);
   }, [gameData]);
 
   const {toast}= useToast();
-  
-  const handleJoin= ()=>{
+  const currentPlayer= useSelector((state: PlayerRootState)=> state.player);
+  const handleJoin=async ()=>{
     if(playerName.trim()){
       // need to check the room Code and other things
-      setShowJoinScreen(false);
       console.log("the no of the players is defined as the ", gameData.players.length);
-      onJoinGame(playerName.trim(), gameData.players.length==1 , currentPlayer, "");
+      const randomAvatar= AVATARS[Math.floor(Math.random()*AVATARS.length)];
+      const currentPlayer: Player= {
+        userId: player.userId,
+        username: playerName.trim(),
+        isHost: gameData.players.length==0,
+        isReady: false,
+        avatar: randomAvatar,
+        isDrawing: false,
+        joinedAt: new Date().toISOString(),
+        score: 0,
+        correctGuesses: 0,
+        drawings: 0
+      }
+      if(gameData.players.length == 0){
+          const roomData: Room= {
+            hostId: currentPlayer.userId,
+            maxPlayers: gameData.settings.maxPlayers,
+            players: [...gameData.players, currentPlayer],
+            status: "waiting",
+            settings: gameData.settings,
+            createdAt: new Date().toISOString(),
+            enterpriseTag: "drawsurus",
+            updatedAt: new Date().toISOString()
+          }
+           const roomResponse= await apiService.createRoom(roomData);
+          if(roomResponse.status== 201 && roomResponse.data && roomResponse.data._id && roomResponse.data.roomCode){
+            const maxPlayers= roomResponse.data.maxPlayers;
+              roomResponse.data.settings.maxPlayers= maxPlayers;
+              // setLobbyData((prev)=>({
+              //   ...prev,
+              //   players: [...prev.players, newPlayer],
+              //   settings: joinResponse.data.settings,
+              //   gameId: joinResponse.data.currentGameId || "",
+              //   roomCode: joinResponse.data.roomCode,
+              //   status: joinResponse.data.status
+              // }));
+          }
+        //  dispatch(setRoomData(roomResponse.data));  
+         dispatch(toggleJoinScreen());
+      }
+      // onJoinGame(playerName.trim(), gameData.players.length==1 , "");
+    }
+    else{
+      toast({
+        title: "Invalid Player Name",
+        description: "Please enter a valid player name.",
+        variant: "destructive",
+      });
     }
   }
 
@@ -77,7 +123,27 @@ export default function LobbyScreen({
   const handleCreateGame=()=>{
     if(playerName.trim()){
       console.log("the handle Create game is called");
-      onJoinGame(playerName.trim(), true, currentPlayer, "");
+      // Going to create a new Player in the database
+      const randomAvatar= AVATARS[Math.floor(Math.random()*AVATARS.length)];
+      dispatch(
+        setUserDetails( {
+          userName: playerName.trim(),
+          email: "",
+        })
+      );
+      localStorage.setItem("user", JSON.stringify({
+        userName: playerName.trim(),
+        email:"" 
+      }));
+      dispatch(setPlayerDetails({
+        userId: "njgnefwofknr",
+        username: playerName.trim(),
+        isHost: false,
+        avatar: AVATARS[Math.floor(Math.random()*AVATARS.length)],
+        joinedAt: new Date().toISOString(),
+      }));
+      dispatch(setShowJoinScreen(false));
+      localStorage.removeItem("guestMode");
     }
   }
 
@@ -94,7 +160,7 @@ export default function LobbyScreen({
   }
 
     const canStartGame = currentPlayer?.isHost && gameData.players.length > 0
-
+console.log("the show join status on the lobby Screen is defined as the", showJoinScreen);
     if(showJoinScreen){
        return (
           <div className="max-w-lg mx-auto">

@@ -4,9 +4,26 @@ import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { LogOut, User } from "lucide-react"
 import Link from "next/link"
+import { useSelector } from "react-redux"
+import { RootState } from "@/store/store"
+import { useDispatch } from "react-redux"
+import { setUserDetails } from "@/store/slices/userSlice"
 
 export default function Navigation() {
-  const { user, logout } = useAuth()
+
+  const user= useSelector((state: RootState)=> state.user);
+  const { logout } = useAuth()
+  const dispatch= useDispatch();
+  const logoutUser= async()=>{
+    console.log("logging out the user");
+    dispatch(setUserDetails({
+            userName: "",
+            email: ""
+          }));
+     await logout();
+     console.log("user logged out successfully");
+      window.location.href= "/login";
+  }
 
   return (
     <nav className="bg-white/10 backdrop-blur-sm">
@@ -24,7 +41,7 @@ export default function Navigation() {
                 </span>
                 <Button 
                   variant="ghost" 
-                  onClick={logout}
+                  onClick={logoutUser}
                   className="text-white/80 hover:text-white"
                 >
                   Logout

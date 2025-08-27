@@ -99,9 +99,8 @@ const gameSlice = createSlice({
     },
 
     /** Set game state */
-    setGameState: (state, action: PayloadAction<GameState>) => {
-      state.status = action.payload === "lobby" ? "waiting" : 
-                    action.payload === "game" ? "playing" : "completed";
+    setGameState: (state, action: PayloadAction<{isGameState: GameState}>) => {
+      state.status =action.payload.isGameState === "lobby" ? "waiting" : action.payload.isGameState === "game" ? "playing" : "completed";
     },
 
     /** Set winner */

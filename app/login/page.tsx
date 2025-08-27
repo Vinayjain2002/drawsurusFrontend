@@ -12,7 +12,9 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { setUserDetails } from "@/store/slices/userSlice"
 import { useDispatch } from "react-redux"   // ✅ import lowercase
-import type { AppDispatch } from "@/store/store"
+import type { AppDispatch, RootState } from "@/store/store"
+import { setGuestMode } from "@/store/slices/GuestModeSlice"
+import { useSelector } from "react-redux"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -23,14 +25,21 @@ export default function LoginPage() {
   const { toast } = useToast()
   const { login } = useAuth()
   const dispatch = useDispatch<AppDispatch>()   // ✅ now defined
+
   useEffect(()=>{
-      // getting the details of the users 
       localStorage.removeItem("guestMode");
-      const userDetails= localStorage.getItem("user");
-      if(userDetails){
+      const userDetails= JSON.parse(localStorage.getItem("user") || "{}");
+      console.log("User details from localStorage:", userDetails);
+      if(userDetails.data && userDetails.data.email && userDetails.data.userName){
+        console.log("User details found in localStorage:", userDetails);
+        dispatch(setUserDetails({userName: userDetails.data.userName,  email: userDetails.data.email}));
+        dispatch(setGuestMode({isGuestMode: false}));
         router.push("/");
       }
   },[]);
+
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true);
@@ -64,12 +73,12 @@ export default function LoginPage() {
             localStorage.setItem("user", JSON.stringify(loginResponse.data.user));
             localStorage.setItem("auth_token", loginResponse.data.token);
             toast({title: "User Logged In successfully"});
-            router.push("/");
-                dispatch(setUserDetails({
-                userName: loginResponse.data.user.userName,
-                email: loginResponse.data.user.email,
-              }));
-
+            dispatch(setUserDetails({
+              userName: loginResponse.data.user.userName,
+              email: loginResponse.data.user.email,
+            }));
+            console.log("User details after login are set to:", loginResponse.data.user);
+              router.push("/");
               return;
         }
         else if(loginResponse.status== 500){
@@ -167,6 +176,7 @@ export default function LoginPage() {
               className="w-full bg-green-600 hover:bg-green-700 text-white border-green-600" 
               onClick={() => {
                 localStorage.setItem("guestMode", "true");
+                dispatch(setGuestMode({ isGuestMode: true })); // ✅ correct payload format
                 router.push("/");
               }}
             >

@@ -14,6 +14,7 @@ import { UseDispatch } from "react-redux"
 import type { AppDispatch } from "@/store/store"
 import { useDispatch } from "react-redux"
 import { setUserDetails } from "@/store/slices/userSlice"
+import { setGuestMode } from "@/store/slices/GuestModeSlice"
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -36,8 +37,10 @@ export default function SignupPage() {
 
   useEffect(()=>{
       localStorage.removeItem("guestMode");
-      const userDetails= localStorage.getItem("user");
-      if(userDetails){
+      const userDetails= JSON.parse(localStorage.getItem("user") || "{}");
+      console.log("User details from localStorage:", userDetails);
+      if(userDetails.data && userDetails.data.email && userDetails.data.userName){
+        dispatch(setUserDetails({userName: userDetails.data.userName, email: userDetails.data.email}));
         router.push("/");
       }
   }, []);
@@ -305,6 +308,7 @@ export default function SignupPage() {
               variant="outline" 
               className="w-full bg-green-600 hover:bg-green-700 text-white border-green-600" 
               onClick={() => {
+                dispatch(setGuestMode({ isGuestMode: true }));
                 localStorage.setItem("guestMode", "true");
                 router.push("/");
               }}

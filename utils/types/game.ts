@@ -228,3 +228,38 @@ export interface Sessions{
   logoutAt: Date
 }
 
+
+
+export  interface userState{
+    userName?: string,
+    email?: string
+  }
+
+export  interface RootState{
+    user: userState
+  }
+
+export  interface uiState{
+    ui: {
+       showJoinScreen: boolean
+    }
+  }
+export  interface guestModeState{
+    guestMode: {
+      isGuestMode: boolean
+    }
+  }
+  export interface playerState{
+    userId: string,
+    username: string,
+    isHost: boolean,
+    avatar: string,
+    jounedAt: string,
+    isReady: boolean
+  }
+
+  export interface PlayerRootState{
+    player: playerState
+  }
+
+export  const AVATARS = ["🦕", "🎨", "🌟", "🎯", "🚀", "🎪", "🎭", "🎨", "🦄", "🌈", "⭐", "🎊"]
